@@ -1,0 +1,5 @@
+name:  route
+description:  A client + server routing library for Dart
+
+dependencies:
+  unittest: any
