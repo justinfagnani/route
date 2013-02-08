@@ -10,6 +10,13 @@ export 'url_pattern.dart';
 
 typedef Handler(String path);
 
+typedef void EventHandler(Event e);
+
+/**
+ * Stores a set of [UrlPattern] to [Handler] associations and provides methods
+ * for calling a handler for a URL path, listening to [Window] history events,
+ * and creating HTML event handlers that navigate to a URL.
+ */
 class Router {
   final Map<UrlPattern, Handler> _handlers;
 
@@ -22,8 +29,12 @@ class Router {
   /**
    * Finds a matching [UrlPattern] added with [addHandler], parses the path
    * and invokes the associated callback.
+   *
+   * This method does not call [Window.pushState] to simulate navigation, [go]
+   * should be used for that. This method is used to invoke a handler after some
+   * other code navigates the window, such as [listen].
    */
-  handle(String path) {
+  void handle(String path) {
     for (var url in _handlers.keys) {
       if (url.matches(path)) {
         _handlers[url](path);
@@ -33,13 +44,18 @@ class Router {
   }
 
   /** Listens for window history events and invokes the router. */
-  listen() {
-    window.on.popState.add((_) => handle(window.location.pathname));
+  void listen() {
+    window.onPopState.listen((_) => handle(window.location.pathname));
   }
 
-  /** Looks up the handler associated with [url] and calls it with [args]. */
-  go(UrlPattern url, List args) {
+  /**
+   * Navigates the browser to the path produced by [url] with [args] by calling
+   * [Window.pushState], then invokes the handler associated with [url].
+   */
+  void go(UrlPattern url, List args, String title) {
     if (_handlers.containsKey(url)) {
+      var path = url.reverse(args);
+      window.history.pushState(null, title, path);
       _handlers[url](url.reverse(args));
     } else {
       throw new ArgumentError('Unknown URL pattern: $url');
@@ -53,10 +69,9 @@ class Router {
    * [Event.preventDefault] is called to stop the default behavior. Then the
    * handler associated with [url] is invoked with [args].
    */
-  clickHandler(UrlPattern url, List args, String title) => (Event e) {
-    var path = url.reverse(args);
-    window.history.pushState(null, title, path);
-    e.preventDefault();
-    go(url, args);
-  };
+  EventHandler clickHandler(UrlPattern url, List args, String title) =>
+      (Event e) {
+        e.preventDefault();
+        go(url, args, title);
+      };
 }

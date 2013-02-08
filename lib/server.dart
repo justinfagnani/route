@@ -10,5 +10,12 @@ export 'url_pattern.dart';
 
 typedef bool HttpMatcher(HttpRequest request);
 
+/**
+ * Returns a matcher for use with [HttpServer.addRequestHandler] that returns
+ * [:true:] if [pattern] matches against the request path.
+ *
+ * Usage:
+ *     server.addRequestHandler(matchesUrl(pattern), handler);
+ */
 HttpMatcher matchesUrl(UrlPattern pattern) => (HttpRequest req) =>
    pattern.matches(req.path);

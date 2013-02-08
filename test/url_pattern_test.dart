@@ -24,7 +24,7 @@ main() {
     expectPattern(r'foo', [], 'foo');
     expectPattern(r'(\w+)', ['foo'], 'foo');
     expectPattern(r'/(\w+)', ['foo'], '/foo');
-    //TODO: validate ambiguous patterns
+    //TODO(justinfagnani): validate ambiguous patterns
     //expectPattern(r'/(\w+)(\w+)', ['foo', 'bar'], '/foobar');
     expectPattern(r'/(\w+)/(\w+)', ['foo', 'bar'], '/foo/bar');
   });

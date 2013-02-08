@@ -36,7 +36,7 @@ UrlPattern urlPattern(String p) => new UrlPattern(p);
  *
  *    library urls;
  *
- *    final ARTICLE_URL = new UrlPattern(r'/articles/(\d+)');
+ *    final articleUrl = new UrlPattern(r'/articles/(\d+)');
  *
  * server.dart:
  *
@@ -45,11 +45,11 @@ UrlPattern urlPattern(String p) => new UrlPattern(p);
  *
  *    main() {
  *      var server = new HttpServer();
- *      server.addRequestHandler(matchesUrl(ARTICLE_URL), serveArticle);
+ *      server.addRequestHandler(matchesUrl(articleUrl), serveArticle);
  *    }
  *
  *    serveArcticle(req, res) {
- *      var articleId = ARTICLE_URL.parse(req.path)[0];
+ *      var articleId = articleUrl.parse(req.path)[0];
  *      // ...
  *    }
  */
@@ -64,7 +64,7 @@ class UrlPattern implements Pattern {
   String reverse(Iterable args) {
     var sb = new StringBuffer();
     var chars = _pattern.splitChars();
-    var argsIter = args.iterator();
+    var argsIter = args.iterator;
 
     int groupCount = 0;
     int depth = 0;
@@ -85,8 +85,8 @@ class UrlPattern implements Pattern {
         if (depth == 0) {
           groupEnd = i;
           // append the nth arg
-          if (argsIter.hasNext) {
-            sb.add(argsIter.next().toString());
+          if (argsIter.moveNext()) {
+            sb.add(argsIter.current.toString());
           } else {
             throw new ArgumentError('more groups than args');
           }
@@ -112,10 +112,11 @@ class UrlPattern implements Pattern {
   }
 
   bool matches(String str) {
-    var iter = regex.allMatches(str).iterator();
-    if (iter.hasNext) {
-      var match = iter.next();
-      return (match.start == 0) && (match.end == str.length) && (!iter.hasNext);
+    var iter = regex.allMatches(str).iterator;
+    if (iter.moveNext()) {
+      var match = iter.current;
+      return (match.start == 0) && (match.end == str.length)
+          && (!iter.moveNext());
     }
     return false;
   }

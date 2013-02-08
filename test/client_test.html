@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<!--
+Copyright (c) 2012, the Dart project authors.  Please see the AUTHORS file
+for details. All rights reserved. Use of this source code is governed by a
+BSD-style license that can be found in the LICENSE file.
+-->
+<html lang="en">
+  <head>
+    <title>client_test</title>
+  </head>
+  <body>
+    <script type="application/javascript">
+if (navigator.webkitStartDart) {
+  navigator.webkitStartDart();
+}
+    </script>
+    <script type="application/dart">
+import 'package:unittest/unittest.dart';
+import 'package:route/client.dart';
+
+main() {
+  test('handle', () {
+    var router = new Router();
+    var url1 = new UrlPattern(r'/');
+    var url2 = new UrlPattern(r'/foo/(\d+)');
+    var testPath = '/foo/123';
+
+    router.addHandler(url1, (String path) {
+      fail('should not have been called');
+    });
+
+    router.addHandler(url2, (String path) {
+      expect(path, testPath);
+    });
+
+    router.handle(testPath);
+  });
+}
+    </script>
+  </body>
+</html>
