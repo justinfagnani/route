@@ -8,31 +8,65 @@ import 'package:unittest/unittest.dart';
 import 'package:route/url_pattern.dart';
 
 main() {
-  test('matches1', () {
-    var pattern = new UrlPattern('/');
-    expect(pattern.matches(''), false);
-    expect(pattern.matches('/'), true);
+  test('no groups', () {
+    checkPattern('/', '/', [], ['', 'a', '/a']);
+    checkPattern('a', 'a', [], ['', '/', '/a']);
   });
 
-  test('matches2', () {
-    var pattern = new UrlPattern('/(/w+)');
-    expect(pattern.matches(''), false);
-    expect(pattern.matches('/'), false);
+  test('basic groups', () {
+    checkPattern(r'(\w+)', 'ab', ['ab'], ['(ab)', '', ' ']);
   });
 
-  test('forward and reverse', () {
-    expectPattern(r'foo', [], 'foo');
-    expectPattern(r'(\w+)', ['foo'], 'foo');
-    expectPattern(r'/(\w+)', ['foo'], '/foo');
-    //TODO(justinfagnani): validate ambiguous patterns
-    //expectPattern(r'/(\w+)(\w+)', ['foo', 'bar'], '/foobar');
-    expectPattern(r'/(\w+)/(\w+)', ['foo', 'bar'], '/foo/bar');
+  test('escaping', () {
+    checkPattern(r'\\', r'\', []);
+    // it's ok to leave a hanging escape?
+    checkPattern(r'\\\', r'\', []);
+    checkPattern(r'\a', r'a', []);
+    checkPattern(r'\(a\)', '(a)', [], ['a']);
+    checkPattern(r'(a\))', 'a)', ['a)'], ['a']);
+    checkPattern(r'(\\w)', r'\w', [r'\w'], [r'\a']);
+  });
+
+  test('more groups', () {
+    checkPattern(r'/(\w+)', '/foo', ['foo'], ['foo']);
+    checkPattern(r'/(\w+)/(\w+)', '/foo/bar', ['foo', 'bar']);
+    // these are odd cases. maybe we should ban nested groups.
+    checkPattern(r'((\w+))', 'a', ['a', 'a'], ['(a)']);
+    checkPattern(r'((\w+)(\d+))', 'a1', ['a1', 'a', '1'], ['(a1)']);
+  });
+
+  test('ambiguous groups', () {
+    expect(() => new UrlPattern(r'(\w+)(\w+)'), throws);
+  });
+
+  test('unmatching parens', () {
+    expect(() => new UrlPattern('('), throws);
+    expect(() => new UrlPattern(')'), throws);
+    expect(() => new UrlPattern('(()'), throws);
+    expect(() => new UrlPattern('())'), throws);
+  });
+
+  test('special chars outside groups', () {
+    checkPattern('^', '^', []);
+    checkPattern(r'$', r'$', []);
+    checkPattern('.', '.', [], ['a']);
+    checkPattern('|', '|', [], ['a']);
+    checkPattern('+', '+', [], ['a']);
+    checkPattern('[', '[', [], ['a']);
+    checkPattern(']', ']', [], ['a']);
+    checkPattern('{', '{', [], ['a']);
+    checkPattern('}', '}', [], ['a']);
   });
 }
 
-expectPattern(String pattern, List args, String url) {
-  var p = new UrlPattern(pattern);
-  expect(p.matches(url), true);
-  expect(p.reverse(args), url);
-  expect(p.parse(url), orderedEquals(args));
+checkPattern(String p, String url, List args, [List nonMatches]) {
+  var pattern = new UrlPattern(p);
+  expect(pattern.matches(url), true);
+  expect(pattern.reverse(args), url);
+  expect(pattern.parse(url), orderedEquals(args));
+  if (nonMatches != null) {
+    for (var url in nonMatches) {
+      expect(pattern.matches(url), false);
+    }
+  }
 }
