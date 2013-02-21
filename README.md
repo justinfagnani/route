@@ -82,20 +82,15 @@ against `UrlPatterns`.
       var articleId = articleUrl.parse(req.path)[0];
       // retreive article data
     }
-
-Compatibility
--------------
- 
-Route uses `Window.pushState` to perform navigation on the client. pushState is
-not supported in IE 9, so we need to develop a fallback that uses URL fragments.
  
 Further Goals
 -------------
  
- * IE 9 support
+ * ~~IE 9 support~~ Done!
  * Integration with Web UI so that the changing of UI views can happen
    automatically.
- * Handling different HTTP methods to help imeplemtn REST APIs.
+ * Server-side routing for the dart:io v2 HttpServer.
+ * Handling different HTTP methods to help imeplemnt REST APIs.
  * Automatic generation of REST URLs from a single URL pattern, similar to Ruby
    on Rails
  * Helpers for nested views and key-value URL schemes common with complex apps.
