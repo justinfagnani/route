@@ -46,6 +46,13 @@ main() {
     expect(() => new UrlPattern('())'), throws);
   });
 
+  test('fragments', () {
+    var pattern = new UrlPattern(r'/foo#(\w+)');
+    expect(pattern.matches('/foo#abc'), true);
+    expect(pattern.reverse(['abc'], useFragment: true), '/foo#abc');
+    expect(pattern.reverse(['abc'], useFragment: false), '/foo/abc');
+  });
+
   test('special chars outside groups', () {
     checkPattern('^', '^', []);
     checkPattern(r'$', r'$', []);
@@ -56,6 +63,14 @@ main() {
     checkPattern(']', ']', [], ['a']);
     checkPattern('{', '{', [], ['a']);
     checkPattern('}', '}', [], ['a']);
+  });
+
+  test('matchesNonFragment', () {
+    var pattern = new UrlPattern(r'/foo#(\w+)');
+    expect(pattern.matches('/foo'), false);
+    expect(pattern.matchesNonFragment('/foo'), true);
+    expect(() { new UrlPattern(r'(#)'); }, throws);
+    expect(() { new UrlPattern(r'##'); }, throws);
   });
 }
 

@@ -35,6 +35,23 @@ main() {
 
     router.handle(testPath);
   });
+
+  test('fragment', () {
+    var router = new Router(useFragment: true);
+    var url2 = new UrlPattern(r'/foo#(\d+)');
+
+    var testPath = '/foo/123';
+    var testPathFragment = '/foo#123';
+
+    router.addHandler(url2, (String path) {
+      // always expect the non-fragment path
+      expect(path, testPath);
+    });
+
+    router.handle(testPath);
+    router.handle(testPathFragment);
+  });
+
 }
     </script>
   </body>

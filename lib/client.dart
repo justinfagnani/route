@@ -19,8 +19,19 @@ typedef void EventHandler(Event e);
  */
 class Router {
   final Map<UrlPattern, Handler> _handlers;
+  final bool useFragment;
 
-  Router() : _handlers = new Map<UrlPattern, Handler>();
+  /**
+   * [useFragment] determines whether this Router uses pure paths with
+   * [History.pushState] or paths + fragments and [Location.assign]. The default
+   * value is null which then determines the behavior based on
+   * [History.supportsState].
+   */
+  Router({bool useFragment})
+      : _handlers = new Map<UrlPattern, Handler>(),
+        useFragment = (useFragment == null)
+            ? History.supportsState
+            : useFragment;
 
   void addHandler(UrlPattern pattern, Handler handler) {
     _handlers[pattern] = handler;
@@ -30,33 +41,54 @@ class Router {
    * Finds a matching [UrlPattern] added with [addHandler], parses the path
    * and invokes the associated callback.
    *
-   * This method does not call [Window.pushState] to simulate navigation, [go]
-   * should be used for that. This method is used to invoke a handler after some
-   * other code navigates the window, such as [listen].
+   * This method does not perform any navigation, [go] should be used for that.
+   * This method is used to invoke a handler after some other code navigates the
+   * window, such as [listen].
+   *
+   * If the UrlPattern contains a fragment (#), the handler is always called
+   * with the path version of the URL by convertins the # to a /.
    */
   void handle(String path) {
     for (var url in _handlers.keys) {
       if (url.matches(path)) {
-        _handlers[url](path);
+        // always give handlers a non-fragment path
+        var fixedPath = url.reverse(url.parse(path));
+        _handlers[url](fixedPath);
         break;
       }
     }
   }
 
-  /** Listens for window history events and invokes the router. */
+  /**
+   * Listens for window history events and invokes the router. On older
+   * browsers the hashChange event is used instead.
+   */
   void listen() {
-    window.onPopState.listen((_) => handle(window.location.pathname));
+    if (useFragment) {
+      window.onPopState.listen((_) => handle(window.location.pathname));
+    } else {
+      window.onHashChange.listen((_) =>
+          handle('${window.location.pathname}#${window.location.hash}'));
+    }
   }
 
   /**
    * Navigates the browser to the path produced by [url] with [args] by calling
-   * [Window.pushState], then invokes the handler associated with [url].
+   * [History.pushState], then invokes the handler associated with [url].
+   *
+   * On older browsers [Location.assign] is used instead with the fragment
+   * version of the UrlPattern.
    */
   void go(UrlPattern url, List args, String title) {
     if (_handlers.containsKey(url)) {
-      var path = url.reverse(args);
-      window.history.pushState(null, title, path);
-      _handlers[url](url.reverse(args));
+      if (useFragment) {
+        var path = url.reverse(args, useFragment: useFragment);
+        window.history.pushState(null, title, path);
+      } else {
+        var path = url.reverse(args, useFragment: useFragment);
+        window.location.assign(path);
+      }
+      _handlers[url](url.reverse(args, useFragment: useFragment));
     } else {
       throw new ArgumentError('Unknown URL pattern: $url');
     }
