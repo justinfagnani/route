@@ -65,10 +65,10 @@ class Router {
    */
   void listen() {
     if (useFragment) {
-      window.onPopState.listen((_) => handle(window.location.pathname));
-    } else {
       window.onHashChange.listen((_) =>
           handle('${window.location.pathname}#${window.location.hash}'));
+    } else {
+      window.onPopState.listen((_) => handle(window.location.pathname));
     }
   }
 
