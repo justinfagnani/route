@@ -79,7 +79,7 @@ against `UrlPatterns`.
 
     HttpServer.bind().then((server) {
       var router = new Router(server);
-      router.filter(matchesAny(allUrls), authFilter);
+      router.filter(matchAny(allUrls), authFilter);
       router.serve(homeUrl).listen(serverHome);
       router.serve(articleUrl).listen(serveArticle);
     });
