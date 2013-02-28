@@ -78,9 +78,10 @@ against `UrlPatterns`.
     import 'package:route/pattern.dart';
 
     HttpServer.bind().then((server) {
-      server.filter(matchesAny(allUrls), authFilter);
-      server.serve(homeUrl).listen(serverHome);
-      server.serve(articleUrl).listen(serveArticle);
+      var router = new Router(server);
+      router.filter(matchesAny(allUrls), authFilter);
+      router.serve(homeUrl).listen(serverHome);
+      router.serve(articleUrl).listen(serveArticle);
     });
  
     Future<bool> authFilter(req) {
