@@ -1,6 +1,6 @@
 name:  route
 description:  A client + server routing library for Dart
-version: 0.0.1
+version: 0.0.3
 author: "Dart Authors <misc@dartlang.org>"
 homepage: https://github.com/dart-lang/route
 
