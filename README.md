@@ -2,7 +2,7 @@ Route
 =====
 
 Route is a client + server routing library for Dart that helps make building
-single-page web apps easier.
+single-page web apps and using HttpServer easier.
 
 UrlPattern
 ----------
@@ -29,6 +29,7 @@ Example (urls.dart):
 
     final homeUrl = new UrlPattern(r'/');
     final articleUrl = new UrlPattern(r'/article/(\d+)');
+    final allUrls = [homeUrl, articleUrl];
 
 Client Routing
 --------------
@@ -73,12 +74,26 @@ against `UrlPatterns`.
     import 'urls.dart';
     import 'package:route/server.dart';
 
-    main() {
-      var server = new HttpServer();
-      server.addRequestHandler(matchesUrl(ARTICLE_URL), serveArticle);
-    }
+    import 'package:route/server.dart';
+    import 'package:route/pattern.dart';
 
-    serveArcticle(req, res) {
+    HttpServer.bind().then((server) {
+      server.filter(matchesAny(allUrls), authFilter);
+      server.serve(homeUrl).listen(serverHome);
+      server.serve(articleUrl).listen(serveArticle);
+    });
+ 
+    Future<bool> authFilter(req) {
+      return getUser(getUserIdCookie(req)).then((user) {
+        if (user != null) {
+          return true;
+        }
+        serveLoginPage(req);
+        return false;
+      });
+    }
+ 
+    serveArcticle(req) {
       var articleId = articleUrl.parse(req.path)[0];
       // retreive article data
     }
@@ -89,7 +104,7 @@ Further Goals
  * ~~IE 9 support~~ Done!
  * Integration with Web UI so that the changing of UI views can happen
    automatically.
- * Server-side routing for the dart:io v2 HttpServer.
+ * ~~Server-side routing for the dart:io v2 HttpServer.~~ Done!
  * Handling different HTTP methods to help imeplemnt REST APIs.
  * Automatic generation of REST URLs from a single URL pattern, similar to Ruby
    on Rails
