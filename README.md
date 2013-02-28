@@ -60,7 +60,7 @@ Example (client.dart):
     }
     
     void showArticle(String path) {
-      var articleId = articleUrl.parse(req.path)[0];
+      var articleId = articleUrl.parse(req.uri.path)[0];
       // show article page with loading indicator
       // load article from server, then render article
     }
