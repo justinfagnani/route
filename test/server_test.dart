@@ -6,20 +6,86 @@
 import 'package:unittest/unittest.dart';
 import 'package:unittest/mock.dart';
 import 'package:route/server.dart';
+import 'dart:async';
+import 'dart:collection';
 import 'dart:io';
+import 'dart:uri';
 
 class HttpRequestMock extends Mock implements HttpRequest {
-  String path;
-  HttpRequestMock(this.path);
+  Uri uri;
+  HttpResponseMock response = new HttpResponseMock();
+  HttpRequestMock(this.uri);
+}
+
+class HttpResponseMock extends Mock implements HttpResponse {
+  int statusCode;
+  var _onClose;
+  void close() {
+    if (_onClose != null) {
+      _onClose();
+    }
+  }
 }
 
 main() {
-  test('matchesUrl', () {
-    var url = new UrlPattern(r'/foo/(\d+)');
-    var request1 = new HttpRequestMock('/foo/123');
-    var request2 = new HttpRequestMock('foo');
-
-    expect(matchesUrl(url)(request1), true);
-    expect(matchesUrl(url)(request2), false);
+  test('serve 1', () {
+    var controller = new StreamController<HttpRequest>();
+    var router = new Router(controller.stream);
+    var testReq = new HttpRequestMock(new Uri('/foo'));
+    router.serve('/foo').listen(expectAsync1((req) {
+      expect(req, testReq);
+    }));
+    router.serve('/bar').listen(expectAsync1((req) {}, count: 0));
+    controller.add(testReq);
   });
+
+  test('serve 2', () {
+    var controller = new StreamController<HttpRequest>();
+    var router = new Router(controller.stream);
+    var testReq = new HttpRequestMock(new Uri('/bar'));
+    router.serve('/foo').listen(expectAsync1((req) {}, count: 0));
+    router.serve('/bar').listen(expectAsync1((req) {
+      expect(req, testReq);
+    }));
+    controller.add(testReq);
+  });
+
+  test('404', () {
+    var controller = new StreamController<HttpRequest>();
+    var router = new Router(controller.stream);
+    var testReq = new HttpRequestMock(new Uri('/bar'));
+    testReq.response._onClose = expectAsync0(() {
+      expect(testReq.response.statusCode, 404);
+    });
+    router.serve('/foo').listen(expectAsync1((req) {}, count: 0));
+    controller.add(testReq);
+  });
+
+
+  test('filter pass', () {
+    var controller = new StreamController<HttpRequest>();
+    var router = new Router(controller.stream);
+    var testReq = new HttpRequestMock(new Uri('/foo'));
+    router.filter('/foo', expectAsync1((req) {
+      expect(req, testReq);
+      return new Future.immediate(true);
+    }));
+    router.serve('/foo').listen(expectAsync1((req) {
+      expect(req, testReq);
+    }));
+    controller.add(testReq);
+  });
+
+  test('filter no-pass', () {
+    var controller = new StreamController<HttpRequest>();
+    var router = new Router(controller.stream);
+    var testReq = new HttpRequestMock(new Uri('/foo'));
+    router.filter('/foo', expectAsync1((req) {
+      expect(req, testReq);
+      return new Future.immediate(false);
+    }));
+    router.serve('/foo').listen(expectAsync1((req) {}, count: 0));
+    controller.add(testReq);
+  });
+
 }
