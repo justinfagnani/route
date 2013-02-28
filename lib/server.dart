@@ -2,6 +2,10 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
+/**
+ * This library provides a simple API for routing HttpRequests based on thier
+ * URL.
+ */
 library route.server;
 
 import 'dart:async';
@@ -28,8 +32,15 @@ typedef Future<bool> Filter(HttpRequest request);
  * subsequent filters and request handlers are not run. This way a filter can
  * prevent further processing, like needed for authentication.
  *
- * TODO(justinfagnani): Allow filters to process the outgoing response, similar
- * to Django middleware.
+ * Example:
+ *     import 'package:route/server.dart';
+ *     import 'package:route/pattern.dart';
+ *
+ *     HttpServer.bind().then((server) {
+ *       server.filter(matchesAny(['/foo', '/bar']), authFilter);
+ *       server.serve('/foo').listen(fooHandler);
+ *       server.serve('/bar').listen(barHandler);
+ *     });
  */
 class Router {
   final Stream<HttpRequest> incoming;
