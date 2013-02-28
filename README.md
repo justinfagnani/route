@@ -60,7 +60,7 @@ Example (client.dart):
     }
     
     void showArticle(String path) {
-      var articleId = articleUrl.parse(req.path)[0];
+      var articleId = articleUrl.parse(req.uri.path)[0];
       // show article page with loading indicator
       // load article from server, then render article
     }
@@ -79,7 +79,7 @@ against `UrlPatterns`.
 
     HttpServer.bind().then((server) {
       var router = new Router(server);
-      router.filter(matchesAny(allUrls), authFilter);
+      router.filter(matchAny(allUrls), authFilter);
       router.serve(homeUrl).listen(serverHome);
       router.serve(articleUrl).listen(serveArticle);
     });
