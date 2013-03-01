@@ -108,5 +108,5 @@ Further Goals
  * Automatic generation of REST URLs from a single URL pattern, similar to Ruby
    on Rails
  * Helpers for nested views and key-value URL schemes common with complex apps.
- * [Done] ~~Server-side routing for the dart:io v2 `HttpServer`.~~
+ * [Done] ~~Server-side routing for the dart:io v2 HttpServer~~
  * [Done] ~~IE 9 support~~
