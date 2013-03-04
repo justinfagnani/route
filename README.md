@@ -9,7 +9,7 @@ UrlPattern
 
 Route is built around `UrlPattern` a class that matches, parses and produces
 URLs. A `UrlPattern` is similar to a regex, but constrained so that it is
-_reversible_, given a `UrlPattern` and a set or arguments you can produce the
+_reversible_, given a `UrlPattern` and a set of arguments you can produce the
 URL that when parsed returns those same arguments. This is important for keeping
 the URL space for your app flexible so that you can change a URL for a resource
 in one place and keep your app working.
@@ -22,14 +22,15 @@ URL has the form /article/1234. We want to show articles without reloading the
 page.
 
 Example (urls.dart):
+```dart
+library urls;
 
-    library urls;
+import 'package:route/url_pattern.dart';
 
-    import 'package:route/url_pattern.dart';
-
-    final homeUrl = new UrlPattern(r'/');
-    final articleUrl = new UrlPattern(r'/article/(\d+)');
-    final allUrls = [homeUrl, articleUrl];
+final homeUrl = new UrlPattern(r'/');
+final articleUrl = new UrlPattern(r'/article/(\d+)');
+final allUrls = [homeUrl, articleUrl];
+```
 
 Client Routing
 --------------
@@ -65,39 +66,41 @@ void showArticle(String path) {
   // load article from server, then render article
 }
 ```
+
 Server Routing
 --------------
 
 On the server, route gives you a utility function to match `HttpRequest`s
 against `UrlPatterns`.
+```dart
+import 'urls.dart';
+import 'package:route/server.dart';
 
-    import 'urls.dart';
-    import 'package:route/server.dart';
+import 'package:route/server.dart';
+import 'package:route/pattern.dart';
 
-    import 'package:route/server.dart';
-    import 'package:route/pattern.dart';
+HttpServer.bind().then((server) {
+  var router = new Router(server);
+  router.filter(matchesAny(allUrls), authFilter);
+  router.serve(homeUrl).listen(serverHome);
+  router.serve(articleUrl).listen(serveArticle);
+});
 
-    HttpServer.bind().then((server) {
-      var router = new Router(server);
-      router.filter(matchesAny(allUrls), authFilter);
-      router.serve(homeUrl).listen(serverHome);
-      router.serve(articleUrl).listen(serveArticle);
-    });
-
-    Future<bool> authFilter(req) {
-      return getUser(getUserIdCookie(req)).then((user) {
-        if (user != null) {
-          return true;
-        }
-        serveLoginPage(req);
-        return false;
-      });
+Future<bool> authFilter(req) {
+  return getUser(getUserIdCookie(req)).then((user) {
+    if (user != null) {
+      return true;
     }
+    serveLoginPage(req);
+    return false;
+  });
+}
 
-    serveArcticle(req) {
-      var articleId = articleUrl.parse(req.path)[0];
-      // retreive article data
-    }
+serveArcticle(req) {
+  var articleId = articleUrl.parse(req.path)[0];
+  // retreive article data
+}
+```
 
 Further Goals
 -------------
