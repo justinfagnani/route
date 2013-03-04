@@ -75,7 +75,6 @@ class Router {
   }
 
   void _handleRequest(HttpRequest req) {
-    print("_handleRequest $req");
     bool cont = true;
     doWhile(_filters.keys, (Pattern pattern) {
       if (matchesFull(pattern, req.uri.path)) {
