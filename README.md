@@ -44,27 +44,27 @@ The `Router` can listen to `Window.onPopState` events and invoke the correct
 handler so that the back button seamlessly works.
 
 Example (client.dart):
+```dart
+library client;
 
-    library client;
+import 'package:route/client.dart';
 
-    import 'package:route/client.dart';
+main() {
+  var router = new Router();
+  router.addHandler(homeUrl, showHome);
+  router.addHandler(articleUrl, showArticle);
+}
 
-    main() {
-      var router = new Router();
-      router.addHandler(homeUrl, showHome);
-      router.addHandler(articleUrl, showArticle);
-    }
+void showHome(String path) {
+  // nothing to parse from path, since there are no groups
+}
 
-    void showHome(String path) {
-      // nothing to parse from path, since there are no groups
-    }
-
-    void showArticle(String path) {
-      var articleId = articleUrl.parse(req.path)[0];
-      // show article page with loading indicator
-      // load article from server, then render article
-    }
-
+void showArticle(String path) {
+  var articleId = articleUrl.parse(req.path)[0];
+  // show article page with loading indicator
+  // load article from server, then render article
+}
+```
 Server Routing
 --------------
 
