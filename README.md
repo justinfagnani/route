@@ -22,6 +22,7 @@ URL has the form /article/1234. We want to show articles without reloading the
 page.
 
 Example (urls.dart):
+
 ```dart
 library urls;
 
@@ -45,6 +46,7 @@ The `Router` can listen to `Window.onPopState` events and invoke the correct
 handler so that the back button seamlessly works.
 
 Example (client.dart):
+
 ```dart
 library client;
 
@@ -72,6 +74,7 @@ Server Routing
 
 On the server, route gives you a utility function to match `HttpRequest`s
 against `UrlPatterns`.
+
 ```dart
 import 'urls.dart';
 import 'package:route/server.dart';
