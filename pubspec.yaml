@@ -5,4 +5,6 @@ author: "Dart Authors <misc@dartlang.org>"
 homepage: https://github.com/dart-lang/route
 
 dependencies:
+  browser: any
+  logging: any
   unittest: any
