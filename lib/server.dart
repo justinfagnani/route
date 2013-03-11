@@ -32,6 +32,10 @@ typedef Future<bool> Filter(HttpRequest request);
  * subsequent filters and request handlers are not run. This way a filter can
  * prevent further processing, like needed for authentication.
  *
+ * Requests not matched by a call to [serve] are sent to the [defaultStream].
+ * If there's no subscriber to the defaultStream then a 404 is sent to the
+ * response.
+ * 
  * Example:
  *     import 'package:route/server.dart';
  *     import 'package:route/pattern.dart';
@@ -41,20 +45,31 @@ typedef Future<bool> Filter(HttpRequest request);
  *       router.filter(matchesAny(['/foo', '/bar']), authFilter);
  *       router.serve('/foo').listen(fooHandler);
  *       router.serve('/bar').listen(barHandler);
+ *       router.defaultStream.listen(send404);
  *     });
  */
 class Router {
-  final Stream<HttpRequest> incoming;
-  final Map<Pattern, StreamController> _controllers = new LinkedHashMap();
-  final Map<Pattern, Filter> _filters = new LinkedHashMap();
-
-  Router(this.incoming) {
-    incoming.listen(_handleRequest);
+  final Stream<HttpRequest> _incoming;
+  
+  final Map<Pattern, StreamController> _controllers = 
+      new LinkedHashMap<Pattern, StreamController>();
+      
+  final Map<Pattern, Filter> _filters = new LinkedHashMap<Pattern, Filter>();
+  
+  final StreamController<HttpRequest> _defaultController = 
+      new StreamController<HttpRequest>();
+  
+  /**
+   * Create a new Router that listens to the [incoming] stream, usually an
+   * instance of [HttpServer].
+   */
+  Router(Stream<HttpRequest> incoming) : _incoming = incoming {
+    _incoming.listen(_handleRequest);
   }
 
   /**
-   * Request whose URI matches [url] are sent the the stream created by this\
-   * method, and not sent to any other serve streams.
+   * Request whose URI matches [url] are sent to the stream created by this
+   * method, and not sent to any other router streams.
    */
   Stream<HttpRequest> serve(Pattern url) {
     var controller = new StreamController<HttpRequest>();
@@ -74,6 +89,8 @@ class Router {
     _filters[url] = filter;
   }
 
+  Stream<HttpRequest> get defaultStream => _defaultController.stream;
+  
   void _handleRequest(HttpRequest req) {
     bool cont = true;
     doWhile(_filters.keys, (Pattern pattern) {
@@ -95,7 +112,11 @@ class Router {
           }
         }
         if (!handled) {
-          send404(req);
+          if (_defaultController.hasSubscribers) {
+            _defaultController.add(req);
+          } else {
+            send404(req);
+          }
         }
       }
     });

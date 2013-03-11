@@ -61,6 +61,19 @@ main() {
     controller.add(testReq);
   });
 
+  test('default', () {
+    var controller = new StreamController<HttpRequest>();
+    var router = new Router(controller.stream);
+    var testReq = new HttpRequestMock(new Uri('/bar'));
+    testReq.response._onClose = expectAsync0(() {
+      expect(testReq.response.statusCode, 200);
+    });
+    router.defaultStream.listen(expectAsync1((HttpRequest req) {
+      req.response.statusCode = 200;
+      req.response.close();
+    }));
+    controller.add(testReq);
+  });
 
   test('filter pass', () {
     var controller = new StreamController<HttpRequest>();
