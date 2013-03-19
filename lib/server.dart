@@ -125,6 +125,6 @@ class Router {
 
 void send404(HttpRequest req) {
   req.response.statusCode = HttpStatus.NOT_FOUND;
-  req.response.addString("Not Found");
+  req.response.write("Not Found");
   req.response.close();
 }
