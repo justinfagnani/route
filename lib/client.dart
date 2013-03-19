@@ -40,7 +40,7 @@ class Router {
     _handlers[pattern] = handler;
   }
 
-  UrlPattern _getUrl(path) => _handlers.keys.firstMatching((url) => 
+  UrlPattern _getUrl(path) => _handlers.keys.firstWhere((url) => 
       url.matches(path));
   
   /**
