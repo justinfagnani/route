@@ -60,9 +60,10 @@ Example (client.dart):
     import 'package:route/client.dart';
 
     main() {
-      var router = new Router();
-      router.addHandler(homeUrl, showHome);
-      router.addHandler(articleUrl, showArticle);
+      var router = new Router()
+        ..addHandler(homeUrl, showHome)
+        ..addHandler(articleUrl, showArticle)
+        ..listen();
     }
 
     void showHome(String path) {
