@@ -4,6 +4,16 @@ Route
 Route is a client + server routing library for Dart that helps make building
 single-page web apps and using `HttpServer` easier.
 
+Installation
+------------
+
+Add this package to your pubspec.yaml file:
+
+    dependencies:
+      route: any
+      
+Then, run `pub install` to download and link in the package.
+
 UrlPattern
 ----------
 
