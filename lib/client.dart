@@ -33,7 +33,7 @@ class Router {
   Router({bool useFragment})
       : _handlers = new Map<UrlPattern, Handler>(),
         useFragment = (useFragment == null)
-            ? History.supportsState
+            ? !History.supportsState
             : useFragment;
 
   void addHandler(UrlPattern pattern, Handler handler) {
@@ -117,10 +117,10 @@ class Router {
   void _go(String path, String title) {
     title = (title == null) ? '' : title;
     if (useFragment) {
-      window.history.pushState(null, title, path);      
-    } else {
       window.location.assign(path);
       (window.document as HtmlDocument).title = title;
+    } else {
+      window.history.pushState(null, title, path);
     }
   }
   
