@@ -14,5 +14,5 @@ Future _doWhile(Iterator iterator, Future<bool> action(i)) =>
       ? action(iterator.current).then((bool result) =>
         (result)
             ? _doWhile(iterator, action)
-            : new Future.immediate(false))
-      : new Future.immediate(false);
+            : new Future.value(false))
+      : new Future.value(false);

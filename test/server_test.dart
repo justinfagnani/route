@@ -81,7 +81,7 @@ main() {
     var testReq = new HttpRequestMock(new Uri('/foo'));
     router.filter('/foo', expectAsync1((req) {
       expect(req, testReq);
-      return new Future.immediate(true);
+      return new Future.value(true);
     }));
     router.serve('/foo').listen(expectAsync1((req) {
       expect(req, testReq);
@@ -95,7 +95,7 @@ main() {
     var testReq = new HttpRequestMock(new Uri('/foo'));
     router.filter('/foo', expectAsync1((req) {
       expect(req, testReq);
-      return new Future.immediate(false);
+      return new Future.value(false);
     }));
     router.serve('/foo').listen(expectAsync1((req) {}, count: 0));
     controller.add(testReq);

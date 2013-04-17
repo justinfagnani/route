@@ -100,7 +100,7 @@ class Router {
           return c;
         });
       }
-      return new Future.immediate(true);
+      return new Future.value(true);
     }).then((_) {
       if (cont) {
         bool handled = false;
@@ -112,7 +112,7 @@ class Router {
           }
         }
         if (!handled) {
-          if (_defaultController.hasSubscribers) {
+          if (_defaultController.hasListener) {
             _defaultController.add(req);
           } else {
             send404(req);
