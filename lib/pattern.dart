@@ -55,11 +55,18 @@ bool matchesFull(Pattern pattern, String str) {
   var iter = pattern.allMatches(str).iterator;
   if (iter.moveNext()) {
     var match = iter.current;
-    return match.start == 0
-        && match.end == str.length
-        && !iter.moveNext();
+    return match.start == 0 && match.end == str.length && !iter.moveNext();
   }
   return false;
+}
+
+bool matchesPrefix(Pattern pattern, String str) {
+  var iter = pattern.allMatches(str).iterator;
+  if (iter.moveNext()) {
+    var match = iter.current;
+    return match.start == 0 && !iter.moveNext();
+  }
+  return false;  
 }
 
 bool _hasMatch(Iterable<Match> matches) => matches.iterator.moveNext();

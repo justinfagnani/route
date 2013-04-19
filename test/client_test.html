@@ -54,6 +54,20 @@ main() {
     router.handle(testPath);
     router.handle(testPathFragment);
   });
+  
+  test('paths are routed to routes added with addRoute', () {
+    var router = new Router();
+    var testPath = '/foo';
+    
+    router.addRoute(
+      path: '/foo',
+      enter: (RouteEvent e) {
+        print('enter');
+        expect(true, true);
+      });
+    
+    router.handle(testPath);
+  });
 
   test('click handler with fragment is routed when useFragment == true', () {
     var router = new Router(useFragment: true);
