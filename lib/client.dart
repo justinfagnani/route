@@ -8,12 +8,34 @@ import 'dart:html';
 import 'package:logging/logging.dart';
 import 'url_pattern.dart';
 export 'url_pattern.dart';
+import 'pattern.dart';
 
 final _logger = new Logger('route');
 
 typedef Handler(String path);
 
+typedef RouteHandler(RouteEvent path);
+
 typedef void EventHandler(Event e);
+
+class Route {
+  final Pattern path;
+  final RouteHandler enter;
+  final RouteHandler leave;
+  
+  Route({this.path, this.enter, this.leave});
+  
+  bool matches(String matchPath) => matchesPrefix(path, matchPath);  
+}
+
+class RouteEvent {
+  final String path;
+  RouteEvent(this.path);
+}
+
+abstract class Routable {
+  void configureRouter(Router router);
+}
 
 /**
  * Stores a set of [UrlPattern] to [Handler] associations and provides methods
@@ -21,7 +43,8 @@ typedef void EventHandler(Event e);
  * and creating HTML event handlers that navigate to a URL.
  */
 class Router {
-  final Map<UrlPattern, Handler> _handlers;
+  final Map<UrlPattern, Handler> _handlers = new Map<UrlPattern, Handler>();
+  final List<Route> _routes = <Route>[];
   final bool useFragment;
 
   /**
@@ -31,11 +54,22 @@ class Router {
    * [History.supportsState].
    */
   Router({bool useFragment})
-      : _handlers = new Map<UrlPattern, Handler>(),
-        useFragment = (useFragment == null)
+      : useFragment = (useFragment == null)
             ? !History.supportsState
             : useFragment;
 
+  void addRoute({Pattern path, RouteHandler enter, RouteHandler leave, mount}) {
+    if (mount != null) {
+      var child = new Router();
+      if (mount is Function) {
+        mount(child);
+      } else if (mount is Routable) {
+        mount.configureRouter(child);
+      }
+    }
+    _routes.add(new Route(path: path, enter: enter, leave: leave));
+  }
+  
   void addHandler(UrlPattern pattern, Handler handler) {
     _handlers[pattern] = handler;
   }
@@ -55,13 +89,22 @@ class Router {
    * with the path version of the URL by convertins the # to a /.
    */
   void handle(String path) {
-    var url = _getUrl(path);
-    if (url != null) {
-      // always give handlers a non-fragment path
-      var fixedPath = url.reverse(url.parse(path));
-      _handlers[url](fixedPath);      
+    List matchingRoutes = _routes.where((r) => r.matches(path)).toList();
+    if (!matchingRoutes.isEmpty) {
+      if (matchingRoutes.length > 1) {
+        _logger.warning("More than one route matches $path");
+      }
+      var event = new RouteEvent(path);
+      matchingRoutes.first.enter(event);
     } else {
-      _logger.info("Unhandled path: $path");
+      var url = _getUrl(path);
+      if (url != null) {
+        // always give handlers a non-fragment path
+        var fixedPath = url.reverse(url.parse(path));
+        _handlers[url](fixedPath);
+      } else {
+        _logger.info("Unhandled path: $path");
+      }
     }
   }
 

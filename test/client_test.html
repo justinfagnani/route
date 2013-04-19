@@ -19,7 +19,7 @@ import 'package:unittest/unittest.dart';
 import 'package:route/client.dart';
 
 main() {
-  test('handle', () {
+  test('the correct handler is invoked', () {
     var router = new Router();
     var url1 = new UrlPattern(r'/');
     var url2 = new UrlPattern(r'/foo/(\d+)');
@@ -36,7 +36,7 @@ main() {
     router.handle(testPath);
   });
 
-  test('fragment', () {
+  test('path#fragment URLs are routed when useFragment is true', () {
     var router = new Router(useFragment: true);
     var url2 = new UrlPattern(r'/foo#(\d+)');
 
@@ -50,6 +50,20 @@ main() {
 
     router.handle(testPath);
     router.handle(testPathFragment);
+  });
+  
+  test('paths are routed to routes added with addRoute', () {
+    var router = new Router();
+    var testPath = '/foo';
+    
+    router.addRoute(
+      path: '/foo',
+      enter: (RouteEvent e) {
+        print('enter');
+        expect(true, true);
+      });
+    
+    router.handle(testPath);
   });
 
 }
