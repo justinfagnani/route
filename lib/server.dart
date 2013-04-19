@@ -51,9 +51,8 @@ typedef Future<bool> Filter(HttpRequest request);
 class Router {
   final Stream<HttpRequest> _incoming;
   
-  final Map<Pattern, StreamController> _controllers = 
-      new LinkedHashMap<Pattern, StreamController>();
-      
+  final List<_Route> _routes = <_Route>[];
+  
   final Map<Pattern, Filter> _filters = new LinkedHashMap<Pattern, Filter>();
   
   final StreamController<HttpRequest> _defaultController = 
@@ -68,15 +67,15 @@ class Router {
   }
 
   /**
-   * Request whose URI matches [url] are sent to the stream created by this
-   * method, and not sent to any other router streams.
+   * Request whose URI matches [url] and [method] (if provided) are sent to the 
+   * stream created by this method, and not sent to any other router streams.
    */
-  Stream<HttpRequest> serve(Pattern url) {
+  Stream<HttpRequest> serve(Pattern url, {String method}) {
     var controller = new StreamController<HttpRequest>();
-    _controllers[url] = controller;
+    _routes.add(new _Route(controller, url, method:method));
     return controller.stream;
   }
-
+  
   /**
    * A [Filter] returns a [Future<bool>] that tells the router whether to apply
    * the remaining filters and send requests to the streams created by [serve].
@@ -104,14 +103,10 @@ class Router {
     }).then((_) {
       if (cont) {
         bool handled = false;
-        for (Pattern pattern in _controllers.keys) {
-          if (matchesFull(pattern, req.uri.path)) {
-            _controllers[pattern].add(req);
-            handled = true;
-            break;
-          }
-        }
-        if (!handled) {
+        var matches = _routes.where((r) => r.matches(req));
+        if (!matches.isEmpty) {
+          matches.first.controller.add(req);
+        } else {
           if (_defaultController.hasListener) {
             _defaultController.add(req);
           } else {
@@ -127,4 +122,14 @@ void send404(HttpRequest req) {
   req.response.statusCode = HttpStatus.NOT_FOUND;
   req.response.write("Not Found");
   req.response.close();
+}
+
+class _Route {
+  final Pattern url;
+  final String method;
+  final StreamController controller;
+  _Route(this.controller, this.url, {this.method});
+  
+  bool matches(HttpRequest request) => matchesFull(url, request.uri.path) && 
+      (method == null || request.method.toUpperCase() == method);
 }

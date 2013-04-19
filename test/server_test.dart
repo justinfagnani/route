@@ -13,8 +13,9 @@ import 'dart:uri';
 
 class HttpRequestMock extends Mock implements HttpRequest {
   Uri uri;
+  String method;
   HttpResponseMock response = new HttpResponseMock();
-  HttpRequestMock(this.uri);
+  HttpRequestMock(this.uri, {this.method});
 }
 
 class HttpResponseMock extends Mock implements HttpResponse {
@@ -28,6 +29,34 @@ class HttpResponseMock extends Mock implements HttpResponse {
 }
 
 main() {
+  test ('http method can be used to distinguish route', (){
+    var controller = new StreamController<HttpRequest>();
+    var router = new Router(controller.stream);
+    var testReq = new HttpRequestMock(new Uri('/foo'),method:'GET');
+    router.serve('/foo', method:'GET').listen(expectAsync1((req) {
+      expect(req, testReq);
+    }));
+    router.serve('/foo', method:'POST').listen(expectAsync1((_) {}, count:0));
+    controller.add(testReq);
+  });
+  
+  test ('if no http method provided, all methods match', (){
+    var controller = new StreamController<HttpRequest>();
+    var router = new Router(controller.stream);
+    var testGetReq = new HttpRequestMock(new Uri('/foo'), method:'GET');
+    var testPostReq = new HttpRequestMock(new Uri('/foo'), method:'POST');
+    var requests = <HttpRequest>[];
+    router.serve('/foo').listen(expectAsync1((request) {
+      requests.add(request);
+      if (requests.length == 2){
+        expect(requests, [testGetReq, testPostReq]);
+      }
+    }, count: 2));
+    controller.add(testGetReq);
+    controller.add(testPostReq);
+    
+  });
+  
   test('serve 1', () {
     var controller = new StreamController<HttpRequest>();
     var router = new Router(controller.stream);
