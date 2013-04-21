@@ -10,6 +10,7 @@ dependencies:
 
 dev_dependencies:
   unittest: any
+  js: any
 
 environment:
   sdk: ">=0.4.7+1.r21548"
