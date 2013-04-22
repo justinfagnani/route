@@ -18,12 +18,13 @@ typedef RouteHandler(RouteEvent path);
 
 typedef void EventHandler(Event e);
 
-class Route {
+class _Route {
   final Pattern path;
   final RouteHandler enter;
   final RouteHandler leave;
+  final Router child;
   
-  Route({this.path, this.enter, this.leave});
+  _Route({this.path, this.enter, this.leave, this.child});
   
   bool matches(String matchPath) => matchesPrefix(path, matchPath);  
 }
@@ -44,7 +45,7 @@ abstract class Routable {
  */
 class Router {
   final Map<UrlPattern, Handler> _handlers = new Map<UrlPattern, Handler>();
-  final List<Route> _routes = <Route>[];
+  final List<_Route> _routes = <_Route>[];
   final bool useFragment;
 
   /**
@@ -59,15 +60,17 @@ class Router {
             : useFragment;
 
   void addRoute({Pattern path, RouteHandler enter, RouteHandler leave, mount}) {
+    Router child;
     if (mount != null) {
-      var child = new Router();
+      child = new Router();
       if (mount is Function) {
         mount(child);
       } else if (mount is Routable) {
         mount.configureRouter(child);
       }
     }
-    _routes.add(new Route(path: path, enter: enter, leave: leave));
+    _routes.add(new _Route(path: path, enter: enter, leave: leave,
+        child: child));
   }
   
   void addHandler(UrlPattern pattern, Handler handler) {
@@ -77,7 +80,7 @@ class Router {
   UrlPattern _getUrl(path) {
     var matches = _handlers.keys.where((url) => url.matches(path));
     if (matches.isEmpty) {
-      throw new ArgumentError("No handler found for $path");
+      throw new ArgumentError("No handler found for path: $path");
     }
     return matches.first;
   }
@@ -94,13 +97,23 @@ class Router {
    * with the path version of the URL by converting the # to a /.
    */
   void handle(String path) {
-    List matchingRoutes = _routes.where((r) => r.matches(path)).toList();
+    List matchingRoutes = _routes.where((r) => matchesPrefix(r.path, path)).toList();
     if (!matchingRoutes.isEmpty) {
       if (matchingRoutes.length > 1) {
         _logger.warning("More than one route matches $path");
       }
-      var event = new RouteEvent(path);
-      matchingRoutes.first.enter(event);
+      _Route route = matchingRoutes.first;
+      var match = prefixMatch(route.path, path);
+      var headPath = path.substring(0, match.end);
+      var event = new RouteEvent(headPath);
+      if (route.enter != null) {
+        route.enter(event);
+      }
+      if (route.child != null) {
+        var tailPath = path.substring(match.end);
+        route.child.handle(tailPath);
+      }
+      
     } else {
       var url = _getUrl(path);
       if (url != null) {

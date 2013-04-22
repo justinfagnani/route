@@ -61,12 +61,17 @@ bool matchesFull(Pattern pattern, String str) {
 }
 
 bool matchesPrefix(Pattern pattern, String str) {
-  var iter = pattern.allMatches(str).iterator;
-  if (iter.moveNext()) {
-    var match = iter.current;
-    return match.start == 0 && !iter.moveNext();
+  Iterable<Match> matches = pattern.allMatches(str);
+  return !matches.isEmpty && matches.first.start == 0;
+}
+
+/// return the tail
+Match prefixMatch(Pattern pattern, String str) {
+  Iterable<Match> matches = pattern.allMatches(str);
+  if (!matches.isEmpty && matches.first.start == 0) {
+    return matches.first;
   }
-  return false;  
+  return null;
 }
 
 bool _hasMatch(Iterable<Match> matches) => matches.iterator.moveNext();

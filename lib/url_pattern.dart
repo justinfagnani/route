@@ -264,7 +264,7 @@ class UrlPattern implements Pattern {
         sb.write(c);
       }
     }
-    sb.write(r'$');
+//    sb.write(r'$');
     _regex = new RegExp(sb.toString());
   }
 
