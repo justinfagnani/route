@@ -40,8 +40,13 @@ class Router {
     _handlers[pattern] = handler;
   }
 
-  UrlPattern _getUrl(path) => _handlers.keys.firstWhere((url) => 
-      url.matches(path));
+  UrlPattern _getUrl(path) {
+    var matches = _handlers.keys.where((url) => url.matches(path));
+    if (matches.isEmpty) {
+      throw new ArgumentError("No handler found for $path");
+    }
+    return matches.first;
+  }
   
   /**
    * Finds a matching [UrlPattern] added with [addHandler], parses the path
@@ -52,7 +57,7 @@ class Router {
    * window, such as [listen].
    *
    * If the UrlPattern contains a fragment (#), the handler is always called
-   * with the path version of the URL by convertins the # to a /.
+   * with the path version of the URL by converting the # to a /.
    */
   void handle(String path) {
     var url = _getUrl(path);
@@ -71,8 +76,10 @@ class Router {
    */
   void listen({bool ignoreClick: false}) {
     if (useFragment) {
-      window.onHashChange.listen((_) =>
-          handle('${window.location.pathname}#${window.location.hash}'));
+      window.onHashChange.listen((_) {
+        print("location: ${window.location}");
+        return handle('${window.location.pathname}#${window.location.hash}');
+      });
     } else {
       window.onPopState.listen((_) => handle(window.location.pathname));
     }
@@ -81,7 +88,7 @@ class Router {
         if (e.target is AnchorElement) {
           AnchorElement anchor = e.target;
           if (anchor.host == window.location.host) {
-            var fragment = (anchor.hash == '') ? '' : '#${anchor.hash}'; 
+            var fragment = (anchor.hash == '') ? '' : '${anchor.hash}'; 
             gotoPath("${anchor.pathname}$fragment", anchor.title);
             e.preventDefault();
           }

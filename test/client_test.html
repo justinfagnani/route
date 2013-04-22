@@ -7,6 +7,8 @@ BSD-style license that can be found in the LICENSE file.
 <html lang="en">
   <head>
     <title>client_test</title>
+    <div><a id="a_with_path" href="/path">/path</a></div>
+    <div><a id="a_with_fragment" href="#fragment">#fragment</a></div>
   </head>
   <body>
     <script type="application/javascript">
@@ -15,11 +17,12 @@ if (navigator.webkitStartDart) {
 }
     </script>
     <script type="application/dart">
+import 'dart:html';
 import 'package:unittest/unittest.dart';
 import 'package:route/client.dart';
 
 main() {
-  test('handle', () {
+  test('URL is handled by the right handler', () {
     var router = new Router();
     var url1 = new UrlPattern(r'/');
     var url2 = new UrlPattern(r'/foo/(\d+)');
@@ -36,7 +39,7 @@ main() {
     router.handle(testPath);
   });
 
-  test('fragment', () {
+  test('URL is handled by the right handler using fragments', () {
     var router = new Router(useFragment: true);
     var url2 = new UrlPattern(r'/foo#(\d+)');
 
@@ -50,6 +53,16 @@ main() {
 
     router.handle(testPath);
     router.handle(testPathFragment);
+  });
+
+  test('click handler with fragment is routed when useFragment == true', () {
+    var router = new Router(useFragment: true);
+    var urlWithFragment = new UrlPattern(r'(.*)#fragment');
+    router.addHandler(urlWithFragment, expectAsync1((String path) {
+      expect(path, predicate((p) => p.endsWith('#fragment')));
+    }));
+    router.listen();
+    query('#a_with_fragment').click();
   });
 
 }

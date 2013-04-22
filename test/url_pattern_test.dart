@@ -8,16 +8,16 @@ import 'package:unittest/unittest.dart';
 import 'package:route/url_pattern.dart';
 
 main() {
-  test('no groups', () {
+  test('patterns with no groups', () {
     checkPattern('/', '/', [], ['', 'a', '/a']);
     checkPattern('a', 'a', [], ['', '/', '/a']);
   });
 
-  test('basic groups', () {
+  test('patterns with basic groups', () {
     checkPattern(r'(\w+)', 'ab', ['ab'], ['(ab)', '', ' ']);
   });
 
-  test('escaping', () {
+  test('patterns with escaping', () {
     checkPattern(r'\\', r'\', []);
     // it's ok to leave a hanging escape?
     checkPattern(r'\\\', r'\', []);
@@ -27,7 +27,7 @@ main() {
     checkPattern(r'(\\w)', r'\w', [r'\w'], [r'\a']);
   });
 
-  test('more groups', () {
+  test('patterns with more complicated groups', () {
     checkPattern(r'/(\w+)', '/foo', ['foo'], ['foo']);
     checkPattern(r'/(\w+)/(\w+)', '/foo/bar', ['foo', 'bar']);
     // these are odd cases. maybe we should ban nested groups.
@@ -35,20 +35,21 @@ main() {
     checkPattern(r'((\w+)(\d+))', 'a1', ['a1', 'a', '1'], ['(a1)']);
   });
 
-  test('ambiguous groups', () {
+  test('disallow ambiguous groups', () {
     expect(() => new UrlPattern(r'(\w+)(\w+)'), throws);
   });
 
-  test('unmatching parens', () {
+  test('disallow unmatched parens', () {
     expect(() => new UrlPattern('('), throws);
     expect(() => new UrlPattern(')'), throws);
     expect(() => new UrlPattern('(()'), throws);
     expect(() => new UrlPattern('())'), throws);
   });
 
-  test('fragments', () {
+  test('patterns with fragments matches hash and path URLs', () {
     var pattern = new UrlPattern(r'/foo#(\w+)');
     expect(pattern.matches('/foo#abc'), true);
+    expect(pattern.matches('/foo/abc'), true);
     expect(pattern.reverse(['abc'], useFragment: true), '/foo#abc');
     expect(pattern.reverse(['abc'], useFragment: false), '/foo/abc');
   });
@@ -65,7 +66,7 @@ main() {
     checkPattern('}', '}', [], ['a']);
   });
 
-  test('matchesNonFragment', () {
+  test('matchesNonFragment() only matches the path', () {
     var pattern = new UrlPattern(r'/foo#(\w+)');
     expect(pattern.matches('/foo'), false);
     expect(pattern.matchesNonFragment('/foo'), true);
@@ -74,6 +75,13 @@ main() {
   });
 }
 
+/**
+ * Performs the following checks on a UrlPattern constructed from [p]:
+ *  * [url] matches the pattern.
+ *  * Using the pattern to parse [url] produces the arguments in [args].
+ *  * Reversing the pattern with [args] produces the String [url].
+ *  * None of the Strings in [nonMatches] match the pattern.
+ */
 checkPattern(String p, String url, List args, [List nonMatches]) {
   var pattern = new UrlPattern(p);
   expect(pattern.matches(url), true);
