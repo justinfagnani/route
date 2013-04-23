@@ -35,18 +35,18 @@ main() {
     router.handle(testPath);
     router.handle(testPathFragment);
   });
-  
+
   test('paths are routed to routes added with addRoute', () {
     var router = new Router();
     var testPath = '/foo';
-    
+
     router.addRoute(
       path: '/foo',
       enter: (RouteEvent e) {
         print('enter');
         expect(true, true);
       });
-    
+
     router.handle(testPath);
   });
 
@@ -67,9 +67,9 @@ main() {
     }));
     router.handle('/foo');
   });
-  
+
   group('hierarchical routing', () {
-    
+
     _testParentChild(
         Pattern parentPath,
         Pattern childPath,
@@ -89,7 +89,7 @@ main() {
           });
       root.handle(testPath);
     }
-    
+
     test('child router with UrlPattern', () {
       _testParentChild(
           new UrlPattern(r'/foo/(\w+)'),
@@ -107,7 +107,59 @@ main() {
           '/bar',
           '/foo/bar');
     });
-    
+
+  });
+
+  group('leave', () {
+
+    test('should leave previous route and enter new', () {
+      Map<String, int> counters = <String, int>{
+        'rootEnter': 0,
+        'rootLeave': 0,
+        'barEnter': 0,
+        'barLeave': 0,
+        'bazEnter': 0,
+        'bazLeave': 0
+      };
+      Router root = new Router()
+        ..addRoute(path: '/foo',
+            enter: (RouteEvent e) => counters['rootEnter']++,
+            leave: (RouteEvent e) => counters['rootLeave']++,
+            mount: (Router router) =>
+                router
+                    ..addRoute(path: '/bar',
+                        enter: (RouteEvent e) => counters['barEnter']++,
+                        leave: (RouteEvent e) => counters['barLeave']++)
+                    ..addRoute(path: '/baz',
+                        enter: (RouteEvent e) => counters['bazEnter']++,
+                        leave: (RouteEvent e) => counters['bazLeave']++));
+
+      expect(counters['rootEnter'], 0);
+      expect(counters['rootLeave'], 0);
+      expect(counters['barEnter'], 0);
+      expect(counters['barLeave'], 0);
+      expect(counters['bazEnter'], 0);
+      expect(counters['bazLeave'], 0);
+
+      root.handle('/foo/bar');
+
+      expect(counters['rootEnter'], 1);
+      expect(counters['rootLeave'], 0);
+      expect(counters['barEnter'], 1);
+      expect(counters['barLeave'], 0);
+      expect(counters['bazEnter'], 0);
+      expect(counters['bazLeave'], 0);
+
+      root.handle('/foo/baz');
+
+      expect(counters['rootEnter'], 1);
+      expect(counters['rootLeave'], 0);
+      expect(counters['barEnter'], 1);
+      expect(counters['barLeave'], 1);
+      expect(counters['bazEnter'], 1);
+      expect(counters['bazLeave'], 0);
+    });
+
   });
 
 }
