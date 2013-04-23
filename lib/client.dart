@@ -4,6 +4,7 @@
 
 library route.client;
 
+import 'dart:async';
 import 'dart:html';
 import 'package:logging/logging.dart';
 import 'url_pattern.dart';
@@ -24,6 +25,10 @@ class _Route {
   final RouteHandler leave;
   final Router child;
 
+  String toString() {
+    return 'Route:' + path.toString();
+  }
+
   _Route({this.path, this.enter, this.leave, this.child});
 
   bool matches(String matchPath) => matchesPrefix(path, matchPath);
@@ -31,7 +36,15 @@ class _Route {
 
 class RouteEvent {
   final String path;
-  RouteEvent(this.path);
+  Function _responseCall;
+
+  RouteEvent(this.path, Function this._responseCall);
+
+  void allowLeave(Future<bool> veto) {
+    _responseCall(veto);
+  }
+
+  RouteEvent _clone(Function newRespCall) => new RouteEvent(path, newRespCall);
 }
 
 abstract class Routable {
@@ -97,7 +110,8 @@ class Router {
    * If the UrlPattern contains a fragment (#), the handler is always called
    * with the path version of the URL by converting the # to a /.
    */
-  void handle(String path) {
+  Future handle(String path) {
+    Completer completer = new Completer();
     List matchingRoutes = _routes.where((r) => matchesPrefix(r.path, path)).toList();
     if (!matchingRoutes.isEmpty) {
       if (matchingRoutes.length > 1) {
@@ -105,21 +119,38 @@ class Router {
       }
       _Route route = matchingRoutes.first;
       var match = prefixMatch(route.path, path);
+      var tailPath = path.substring(match.end);
       if (!identical(route, _currentRoute)) {
         var headPath = path.substring(0, match.end);
-        var event = new RouteEvent(headPath);
-        if (route.enter != null) {
-          route.enter(event);
-        }
+        var event = new RouteEvent(headPath,
+            (_) => throw new StateError('Cannot veto on enter!'));
         // before we make this a new current route, leave the old
-        _leaveCurrentRoute(event);
-        _currentRoute = route;
+        _leaveCurrentRoute(event).then((bool allowNavigation) {
+          if (allowNavigation) {
+            _currentRoute = route;
+            if (route.enter != null) {
+              route.enter(event);
+            }
+            if (route.child != null) {
+              route.child.handle(tailPath).then((_) {
+                completer.complete();
+              });
+            } else {
+              completer.complete();
+            }
+          } else {
+            completer.complete();
+          }
+        });
+      } else {
+        if (route.child != null) {
+          route.child.handle(tailPath).then((_) {
+            completer.complete();
+          });
+        } else {
+          completer.complete();
+        }
       }
-      if (route.child != null) {
-        var tailPath = path.substring(match.end);
-        route.child.handle(tailPath);
-      }
-
     } else {
       var url = _getUrl(path);
       if (url != null) {
@@ -129,18 +160,45 @@ class Router {
       } else {
         _logger.info("Unhandled path: $path");
       }
+      completer.complete();
     }
+    return completer.future;
   }
 
-  void _leaveCurrentRoute(RouteEvent e) {
+  Future<bool> _leaveCurrentRoute(RouteEvent e) {
+    Completer<bool> completer = new Completer<bool>();
     if (_currentRoute != null) {
+      List<Future<bool>> pendingResponses = <Future<bool>>[];
+      var event = e._clone((Future<bool> r) => pendingResponses.add(r));
+
       if (_currentRoute.leave != null) {
-        _currentRoute.leave(e);
+        _currentRoute.leave(event);
       }
       if (_currentRoute.child != null) {
-        _currentRoute.child._leaveCurrentRoute(e);
+        _currentRoute.child._leaveCurrentRoute(event).then((allowNavigation) {
+          if (!allowNavigation) {
+            completer.complete(false);
+          } else if (pendingResponses.length == 0) {
+            completer.complete(true);
+          } else {
+            Future.wait(pendingResponses).then((List<bool> responses) {
+              completer.complete(responses.reduce((a, b) => a && b));
+            });
+          }
+        });
+      } else {
+        if (pendingResponses.length == 0) {
+          completer.complete(true);
+        } else {
+          Future.wait(pendingResponses).then((List<bool> responses) {
+            completer.complete(responses.reduce((a, b) => a && b));
+          });
+        }
       }
+    } else {
+      completer.complete(true);
     }
+    return completer.future;
   }
 
   /**
@@ -150,7 +208,6 @@ class Router {
   void listen({bool ignoreClick: false}) {
     if (useFragment) {
       window.onHashChange.listen((_) {
-        print("location: ${window.location}");
         return handle('${window.location.pathname}#${window.location.hash}');
       });
     } else {

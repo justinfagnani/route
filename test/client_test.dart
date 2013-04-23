@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:html';
 import 'package:unittest/unittest.dart';
 import 'package:route/client.dart';
@@ -114,8 +115,8 @@ main() {
 
     test('should leave previous route and enter new', () {
       Map<String, int> counters = <String, int>{
-        'rootEnter': 0,
-        'rootLeave': 0,
+        'fooEnter': 0,
+        'fooLeave': 0,
         'barEnter': 0,
         'barLeave': 0,
         'bazEnter': 0,
@@ -123,8 +124,8 @@ main() {
       };
       Router root = new Router()
         ..addRoute(path: '/foo',
-            enter: (RouteEvent e) => counters['rootEnter']++,
-            leave: (RouteEvent e) => counters['rootLeave']++,
+            enter: (RouteEvent e) => counters['fooEnter']++,
+            leave: (RouteEvent e) => counters['fooLeave']++,
             mount: (Router router) =>
                 router
                     ..addRoute(path: '/bar',
@@ -134,32 +135,62 @@ main() {
                         enter: (RouteEvent e) => counters['bazEnter']++,
                         leave: (RouteEvent e) => counters['bazLeave']++));
 
-      expect(counters['rootEnter'], 0);
-      expect(counters['rootLeave'], 0);
+      expect(counters['fooEnter'], 0);
+      expect(counters['fooLeave'], 0);
       expect(counters['barEnter'], 0);
       expect(counters['barLeave'], 0);
       expect(counters['bazEnter'], 0);
       expect(counters['bazLeave'], 0);
 
-      root.handle('/foo/bar');
+      root.handle('/foo/bar').then(expectAsync1((_) {
+        expect(counters['fooEnter'], 1);
+        expect(counters['fooLeave'], 0);
+        expect(counters['barEnter'], 1);
+        expect(counters['barLeave'], 0);
+        expect(counters['bazEnter'], 0);
+        expect(counters['bazLeave'], 0);
 
-      expect(counters['rootEnter'], 1);
-      expect(counters['rootLeave'], 0);
-      expect(counters['barEnter'], 1);
-      expect(counters['barLeave'], 0);
-      expect(counters['bazEnter'], 0);
-      expect(counters['bazLeave'], 0);
-
-      root.handle('/foo/baz');
-
-      expect(counters['rootEnter'], 1);
-      expect(counters['rootLeave'], 0);
-      expect(counters['barEnter'], 1);
-      expect(counters['barLeave'], 1);
-      expect(counters['bazEnter'], 1);
-      expect(counters['bazLeave'], 0);
+        root.handle('/foo/baz').then(expectAsync1((_) {
+          expect(counters['fooEnter'], 1);
+          expect(counters['fooLeave'], 0);
+          expect(counters['barEnter'], 1);
+          expect(counters['barLeave'], 1);
+          expect(counters['bazEnter'], 1);
+          expect(counters['bazLeave'], 0);
+        }));
+      }));
     });
 
+    _testAllowLeave(bool allowLeave) {
+      Completer<bool> completer = new Completer<bool>();
+      bool barEntered = false;
+      bool bazEntered = false;
+      Router root = new Router()
+        ..addRoute(path: '/foo',
+            mount: (Router router) =>
+              router
+                ..addRoute(path: '/bar',
+                    enter: (RouteEvent e) => barEntered = true,
+                    leave: (RouteEvent e) => e.allowLeave(completer.future))
+                ..addRoute(path: '/baz',
+                    enter: (RouteEvent e) => bazEntered = true));
+      root.handle('/foo/bar').then(expectAsync1((_) {
+        expect(barEntered, true);
+        expect(bazEntered, false);
+        root.handle('/foo/baz').then(expectAsync1((_) {
+          expect(bazEntered, allowLeave);
+        }));
+        completer.complete(allowLeave);
+      }));
+    }
+
+    test('should allow navigation', () {
+      _testAllowLeave(true);
+    });
+
+    test('should veto navigation', () {
+      _testAllowLeave(false);
+    });
   });
 
 }
