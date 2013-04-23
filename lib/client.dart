@@ -121,27 +121,7 @@ class Router {
       var match = prefixMatch(route.path, path);
       var tailPath = path.substring(match.end);
       if (!identical(route, _currentRoute)) {
-        var headPath = path.substring(0, match.end);
-        var event = new RouteEvent(headPath,
-            (_) => throw new StateError('Cannot veto on enter!'));
-        // before we make this a new current route, leave the old
-        _leaveCurrentRoute(event).then((bool allowNavigation) {
-          if (allowNavigation) {
-            _currentRoute = route;
-            if (route.enter != null) {
-              route.enter(event);
-            }
-            if (route.child != null) {
-              route.child.handle(tailPath).then((_) {
-                completer.complete();
-              });
-            } else {
-              completer.complete();
-            }
-          } else {
-            completer.complete();
-          }
-        });
+        _processNewRoute(path, tailPath, match, route, completer);
       } else {
         if (route.child != null) {
           route.child.handle(tailPath).then((_) {
@@ -165,10 +145,38 @@ class Router {
     return completer.future;
   }
 
+  _processNewRoute(String path, String tailPath, Match match, _Route route,
+                   Completer<bool> completer) {
+    var headPath = path.substring(0, match.end);
+    var event = new RouteEvent(headPath,
+        (_) => throw new StateError('Cannot veto on enter!'));
+    // before we make this a new current route, leave the old
+    _leaveCurrentRoute(event).then((bool allowNavigation) {
+      if (allowNavigation) {
+        _currentRoute = route;
+        if (route.enter != null) {
+          route.enter(event);
+        }
+        if (route.child != null) {
+          route.child.handle(tailPath).then((_) {
+            completer.complete();
+          });
+        } else {
+          completer.complete();
+        }
+      } else {
+        completer.complete();
+      }
+    });
+  }
+
+  bool reduceBools(bool a, bool b) => a && b;
+
   Future<bool> _leaveCurrentRoute(RouteEvent e) {
     Completer<bool> completer = new Completer<bool>();
     if (_currentRoute != null) {
       List<Future<bool>> pendingResponses = <Future<bool>>[];
+      // We create a copy of the route event with a new veto callback
       var event = e._clone((Future<bool> r) => pendingResponses.add(r));
 
       if (_currentRoute.leave != null) {
@@ -178,27 +186,28 @@ class Router {
         _currentRoute.child._leaveCurrentRoute(event).then((allowNavigation) {
           if (!allowNavigation) {
             completer.complete(false);
-          } else if (pendingResponses.length == 0) {
-            completer.complete(true);
           } else {
-            Future.wait(pendingResponses).then((List<bool> responses) {
-              completer.complete(responses.reduce((a, b) => a && b));
-            });
+            _completePendingResponses(pendingResponses, completer);
           }
         });
       } else {
-        if (pendingResponses.length == 0) {
-          completer.complete(true);
-        } else {
-          Future.wait(pendingResponses).then((List<bool> responses) {
-            completer.complete(responses.reduce((a, b) => a && b));
-          });
-        }
+        _completePendingResponses(pendingResponses, completer);
       }
     } else {
       completer.complete(true);
     }
     return completer.future;
+  }
+
+  _completePendingResponses(List<Future<bool>> pendingResponses,
+                            Completer<bool> completer) {
+    if (pendingResponses.length == 0) {
+      completer.complete(true);
+    } else {
+      Future.wait(pendingResponses).then((List<bool> responses) {
+        completer.complete(responses.reduce(reduceBools));
+      });
+    }
   }
 
   /**
