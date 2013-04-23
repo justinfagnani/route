@@ -208,6 +208,7 @@ class Router {
         completer.complete(responses.reduce(reduceBools));
       });
     }
+    return true;
   }
 
   /**
