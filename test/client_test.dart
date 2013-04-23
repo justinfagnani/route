@@ -135,28 +135,34 @@ main() {
                         enter: (RouteEvent e) => counters['bazEnter']++,
                         leave: (RouteEvent e) => counters['bazLeave']++));
 
-      expect(counters['fooEnter'], 0);
-      expect(counters['fooLeave'], 0);
-      expect(counters['barEnter'], 0);
-      expect(counters['barLeave'], 0);
-      expect(counters['bazEnter'], 0);
-      expect(counters['bazLeave'], 0);
+      expect(counters, {
+        'fooEnter': 0,
+        'fooLeave': 0,
+        'barEnter': 0,
+        'barLeave': 0,
+        'bazEnter': 0,
+        'bazLeave': 0
+      });
 
       root.handle('/foo/bar').then(expectAsync1((_) {
-        expect(counters['fooEnter'], 1);
-        expect(counters['fooLeave'], 0);
-        expect(counters['barEnter'], 1);
-        expect(counters['barLeave'], 0);
-        expect(counters['bazEnter'], 0);
-        expect(counters['bazLeave'], 0);
+        expect(counters, {
+          'fooEnter': 1,
+          'fooLeave': 0,
+          'barEnter': 1,
+          'barLeave': 0,
+          'bazEnter': 0,
+          'bazLeave': 0
+        });
 
         root.handle('/foo/baz').then(expectAsync1((_) {
-          expect(counters['fooEnter'], 1);
-          expect(counters['fooLeave'], 0);
-          expect(counters['barEnter'], 1);
-          expect(counters['barLeave'], 1);
-          expect(counters['bazEnter'], 1);
-          expect(counters['bazLeave'], 0);
+          expect(counters, {
+            'fooEnter': 1,
+            'fooLeave': 0,
+            'barEnter': 1,
+            'barLeave': 1,
+            'bazEnter': 1,
+            'bazLeave': 0
+          });
         }));
       }));
     });
