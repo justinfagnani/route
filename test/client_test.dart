@@ -171,6 +171,7 @@ main() {
       Completer<bool> completer = new Completer<bool>();
       bool barEntered = false;
       bool bazEntered = false;
+
       Router root = new Router()
         ..addRoute(path: '/foo',
             mount: (Router router) =>
@@ -180,6 +181,7 @@ main() {
                     leave: (RouteEvent e) => e.allowLeave(completer.future))
                 ..addRoute(path: '/baz',
                     enter: (RouteEvent e) => bazEntered = true));
+
       root.handle('/foo/bar').then(expectAsync1((_) {
         expect(barEntered, true);
         expect(bazEntered, false);
