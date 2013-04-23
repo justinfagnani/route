@@ -160,6 +160,24 @@ main() {
       expect(counters['bazLeave'], 0);
     });
 
+    solo_test('should allow vetoing', () {
+      bool pass = true;
+      bool barEntered = false;
+      Router root = new Router()
+        ..addRoute(path: '/foo',
+            leave: (RouteEvent e) => pass,
+            mount: (Router router) => 
+              router
+                ..addRoute(path: '/bar',
+                    enter: (RouteEvent e) => barEntered = true,
+                    leave: (RouteEvent e) => pass));
+      root.handle('/foo/bar');
+      expect(barEntered, true);
+      pass = false;
+      barEntered = false;
+      root.handle('/foo/bar');
+      expect(barEntered, false);      
+    });
   });
 
 }

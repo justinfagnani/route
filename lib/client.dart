@@ -4,6 +4,7 @@
 
 library route.client;
 
+import 'dart:async';
 import 'dart:html';
 import 'package:logging/logging.dart';
 import 'url_pattern.dart';
@@ -108,12 +109,14 @@ class Router {
       if (!identical(route, _currentRoute)) {
         var headPath = path.substring(0, match.end);
         var event = new RouteEvent(headPath);
-        if (route.enter != null) {
-          route.enter(event);
-        }
         // before we make this a new current route, leave the old
-        _leaveCurrentRoute(event);
-        _currentRoute = route;
+        var allowNavigation = _leaveCurrentRoute(event);
+        if (allowNavigation != false) {
+          _currentRoute = route;
+          if (route.enter != null) {
+            route.enter(event);
+          }
+        }
       }
       if (route.child != null) {
         var tailPath = path.substring(match.end);
@@ -132,15 +135,19 @@ class Router {
     }
   }
 
-  void _leaveCurrentRoute(RouteEvent e) {
+  bool _leaveCurrentRoute(RouteEvent e) {
     if (_currentRoute != null) {
       if (_currentRoute.leave != null) {
-        _currentRoute.leave(e);
+        var result = _currentRoute.leave(e);
+        if (result == false) {
+          return false;
+        }
       }
       if (_currentRoute.child != null) {
-        _currentRoute.child._leaveCurrentRoute(e);
+        return _currentRoute.child._leaveCurrentRoute(e);
       }
     }
+    return true;
   }
 
   /**
