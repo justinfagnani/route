@@ -23,10 +23,10 @@ class _Route {
   final RouteHandler enter;
   final RouteHandler leave;
   final Router child;
-  
+
   _Route({this.path, this.enter, this.leave, this.child});
-  
-  bool matches(String matchPath) => matchesPrefix(path, matchPath);  
+
+  bool matches(String matchPath) => matchesPrefix(path, matchPath);
 }
 
 class RouteEvent {
@@ -47,6 +47,7 @@ class Router {
   final Map<UrlPattern, Handler> _handlers = new Map<UrlPattern, Handler>();
   final List<_Route> _routes = <_Route>[];
   final bool useFragment;
+  _Route _currentRoute;
 
   /**
    * [useFragment] determines whether this Router uses pure paths with
@@ -72,7 +73,7 @@ class Router {
     _routes.add(new _Route(path: path, enter: enter, leave: leave,
         child: child));
   }
-  
+
   void addHandler(UrlPattern pattern, Handler handler) {
     _handlers[pattern] = handler;
   }
@@ -84,7 +85,7 @@ class Router {
     }
     return matches.first;
   }
-  
+
   /**
    * Finds a matching [UrlPattern] added with [addHandler], parses the path
    * and invokes the associated callback.
@@ -104,16 +105,21 @@ class Router {
       }
       _Route route = matchingRoutes.first;
       var match = prefixMatch(route.path, path);
-      var headPath = path.substring(0, match.end);
-      var event = new RouteEvent(headPath);
-      if (route.enter != null) {
-        route.enter(event);
+      if (!identical(route, _currentRoute)) {
+        var headPath = path.substring(0, match.end);
+        var event = new RouteEvent(headPath);
+        if (route.enter != null) {
+          route.enter(event);
+        }
+        // before we make this a new current route, leave the old
+        _leaveCurrentRoute(event);
+        _currentRoute = route;
       }
       if (route.child != null) {
         var tailPath = path.substring(match.end);
         route.child.handle(tailPath);
       }
-      
+
     } else {
       var url = _getUrl(path);
       if (url != null) {
@@ -122,6 +128,17 @@ class Router {
         _handlers[url](fixedPath);
       } else {
         _logger.info("Unhandled path: $path");
+      }
+    }
+  }
+
+  void _leaveCurrentRoute(RouteEvent e) {
+    if (_currentRoute != null) {
+      if (_currentRoute.leave != null) {
+        _currentRoute.leave(e);
+      }
+      if (_currentRoute.child != null) {
+        _currentRoute.child._leaveCurrentRoute(e);
       }
     }
   }
@@ -144,7 +161,7 @@ class Router {
         if (e.target is AnchorElement) {
           AnchorElement anchor = e.target;
           if (anchor.host == window.location.host) {
-            var fragment = (anchor.hash == '') ? '' : '${anchor.hash}'; 
+            var fragment = (anchor.hash == '') ? '' : '${anchor.hash}';
             gotoPath("${anchor.pathname}$fragment", anchor.title);
             e.preventDefault();
           }
@@ -168,7 +185,7 @@ class Router {
       throw new ArgumentError('Unknown URL pattern: $url');
     }
   }
-  
+
   void gotoPath(String path, String title) {
     var url = _getUrl(path);
     if (url != null) {
@@ -186,7 +203,7 @@ class Router {
       window.history.pushState(null, title, path);
     }
   }
-  
+
   /**
    * Returns an [Event] handler suitable for use as a click handler on [:<a>;]
    * elements. The handler reverses [ur] with [args] and uses [window.pushState]
