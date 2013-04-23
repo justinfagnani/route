@@ -36,15 +36,15 @@ class _Route {
 
 class RouteEvent {
   final String path;
-  Function _responseCall;
+  Future<bool> _allowLeaveFuture;
 
-  RouteEvent(this.path, Function this._responseCall);
+  RouteEvent(this.path);
 
-  void allowLeave(Future<bool> veto) {
-    _responseCall(veto);
+  void allowLeave(Future<bool> allow) {
+    _allowLeaveFuture = allow;
   }
 
-  RouteEvent _clone(Function newRespCall) => new RouteEvent(path, newRespCall);
+  RouteEvent _clone() => new RouteEvent(path);
 }
 
 abstract class Routable {
@@ -111,8 +111,8 @@ class Router {
    * with the path version of the URL by converting the # to a /.
    */
   Future handle(String path) {
-    Completer completer = new Completer();
-    List matchingRoutes = _routes.where((r) => matchesPrefix(r.path, path)).toList();
+    List matchingRoutes = _routes.where(
+        (r) => matchesPrefix(r.path, path)).toList();
     if (!matchingRoutes.isEmpty) {
       if (matchingRoutes.length > 1) {
         _logger.warning("More than one route matches $path");
@@ -121,17 +121,11 @@ class Router {
       var match = prefixMatch(route.path, path);
       var tailPath = path.substring(match.end);
       if (!identical(route, _currentRoute)) {
-        _processNewRoute(path, tailPath, match, route, completer);
-      } else {
-        if (route.child != null) {
-          route.child.handle(tailPath).then((_) {
-            completer.complete();
-          });
-        } else {
-          completer.complete();
-        }
+        return _processNewRoute(path, tailPath, match, route);
+      } else if (route.child != null)  {
+        return route.child.handle(tailPath);
       }
-    } else {
+    } else { // TODO(pavelgj): delete this
       var url = _getUrl(path);
       if (url != null) {
         // always give handlers a non-fragment path
@@ -140,75 +134,49 @@ class Router {
       } else {
         _logger.info("Unhandled path: $path");
       }
-      completer.complete();
     }
-    return completer.future;
+    return new Future.value();
   }
 
-  _processNewRoute(String path, String tailPath, Match match, _Route route,
-                   Completer completer) {
+  Future _processNewRoute(String path, String tailPath, Match match,
+                          _Route route) {
     var headPath = path.substring(0, match.end);
-    var event = new RouteEvent(headPath,
-        (_) => throw new StateError('Cannot veto on enter!'));
+    var event = new RouteEvent(headPath);
     // before we make this a new current route, leave the old
-    _leaveCurrentRoute(event).then((bool allowNavigation) {
+    return _leaveCurrentRoute(event).then((bool allowNavigation) {
       if (allowNavigation) {
         _currentRoute = route;
         if (route.enter != null) {
           route.enter(event);
         }
         if (route.child != null) {
-          route.child.handle(tailPath).then((_) {
-            completer.complete();
-          });
-        } else {
-          completer.complete();
+          return route.child.handle(tailPath);
         }
-      } else {
-        completer.complete();
       }
     });
   }
 
-  bool reduceBools(bool a, bool b) => a && b;
+  Future<bool> _leaveCurrentRoute(RouteEvent e) =>
+      Future.wait(_leaveCurrentRouteHelper(e))
+          .then((values) => values.fold(true, (c, v) => c && v));
 
-  Future<bool> _leaveCurrentRoute(RouteEvent e) {
-    Completer<bool> completer = new Completer<bool>();
+  List<Future<bool>> _leaveCurrentRouteHelper(RouteEvent e) {
+    var futures = [];
     if (_currentRoute != null) {
       List<Future<bool>> pendingResponses = <Future<bool>>[];
-      // We create a copy of the route event with a new veto callback
-      var event = e._clone((Future<bool> r) => pendingResponses.add(r));
-
+      // We create a copy of the route event
+      var event = e._clone();
       if (_currentRoute.leave != null) {
         _currentRoute.leave(event);
       }
-      if (_currentRoute.child != null) {
-        _currentRoute.child._leaveCurrentRoute(event).then((allowNavigation) {
-          if (!allowNavigation) {
-            completer.complete(false);
-          } else {
-            _completePendingResponses(pendingResponses, completer);
-          }
-        });
-      } else {
-        _completePendingResponses(pendingResponses, completer);
+      if (event._allowLeaveFuture != null) {
+        futures.add(event._allowLeaveFuture);
       }
-    } else {
-      completer.complete(true);
+      if (_currentRoute.child != null) {
+        futures.addAll(_currentRoute.child._leaveCurrentRoute(event));
+      }
     }
-    return completer.future;
-  }
-
-  _completePendingResponses(List<Future<bool>> pendingResponses,
-                            Completer<bool> completer) {
-    if (pendingResponses.length == 0) {
-      completer.complete(true);
-    } else {
-      Future.wait(pendingResponses).then((List<bool> responses) {
-        completer.complete(responses.reduce(reduceBools));
-      });
-    }
-    return true;
+    return futures;
   }
 
   /**
