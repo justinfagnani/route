@@ -146,7 +146,7 @@ class Router {
   }
 
   _processNewRoute(String path, String tailPath, Match match, _Route route,
-                   Completer<bool> completer) {
+                   Completer completer) {
     var headPath = path.substring(0, match.end);
     var event = new RouteEvent(headPath,
         (_) => throw new StateError('Cannot veto on enter!'));
