@@ -201,4 +201,104 @@ main() {
     });
   });
 
+  group('Default route', () {
+
+    _testHeadTail(String path, String expectFoo, String expectBar) {
+      Router root = new Router()
+        ..addDefaultRoute(
+            path: '/foo',
+            enter: expectAsync1((RouteEvent e) {
+              expect(e.path, expectFoo);
+            }),
+            mount: (router) =>
+                router
+                  ..addDefaultRoute(
+                      path: '/bar',
+                      enter: expectAsync1((RouteEvent e) {
+                        expect(e.path, expectBar);
+                      })));
+
+      root.handle(path);
+    }
+
+    test('should correctly calculate head/tail of empty route', () {
+      _testHeadTail('', '', '');
+    });
+
+    test('should correctly calculate head/tail of partial route', () {
+      _testHeadTail('/foo', '/foo', '');
+    });
+
+    test('should correctly calculate head/tail of a route', () {
+      _testHeadTail('/foo/bar', '/foo', '/bar');
+    });
+
+    test('should follow default routes', () {
+      Map<String, int> counters = <String, int>{
+        'list_entered': 0,
+        'article_123_entered': 0,
+        'article_123_view_entered': 0,
+        'article_123_edit_entered': 0
+      };
+
+      Router root = new Router()
+        ..addDefaultRoute(
+            path: '/articles',
+            enter: (_) => counters['list_entered']++)
+        ..addRoute(
+            path: '/article/123',
+            enter: (_) => counters['article_123_entered']++,
+            mount: (Router router) =>
+              router
+                ..addDefaultRoute(
+                    path: '/view',
+                    enter: (_) => counters['article_123_view_entered']++)
+                ..addRoute(
+                    path: '/edit',
+                    enter: (_) => counters['article_123_edit_entered']++));
+
+      root.handle('').then((_) {
+        expect(counters, {
+          'list_entered': 1, // default to list
+          'article_123_entered': 0,
+          'article_123_view_entered': 0,
+          'article_123_edit_entered': 0
+        });
+        root.handle('/articles').then((_) {
+          expect(counters, {
+            'list_entered': 1, // already current route
+            'article_123_entered': 0,
+            'article_123_view_entered': 0,
+            'article_123_edit_entered': 0
+          });
+          root.handle('/article/123').then((_) {
+            expect(counters, {
+              'list_entered': 1,
+              'article_123_entered': 1,
+              'article_123_view_entered': 1, // default to view
+              'article_123_edit_entered': 0
+            });
+            root.handle('/article/123/view').then((_) {
+              expect(counters, {
+                'list_entered': 1,
+                'article_123_entered': 1,
+                'article_123_view_entered': 1, // already current route
+                'article_123_edit_entered': 0
+              });
+              root.handle('/article/123/edit').then((_) {
+                expect(counters, {
+                  'list_entered': 1,
+                  'article_123_entered': 1,
+                  'article_123_view_entered': 1,
+                  'article_123_edit_entered': 1
+                });
+              });
+            });
+          });
+        });
+      });
+    });
+
+  });
+
 }

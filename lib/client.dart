@@ -60,6 +60,7 @@ class Router {
   final Map<UrlPattern, Handler> _handlers = new Map<UrlPattern, Handler>();
   final List<_Route> _routes = <_Route>[];
   final bool useFragment;
+  _Route _defaultRoute;
   _Route _currentRoute;
 
   /**
@@ -74,6 +75,11 @@ class Router {
             : useFragment;
 
   void addRoute({Pattern path, RouteHandler enter, RouteHandler leave, mount}) {
+    _addRoute(path: path, enter: enter, leave: leave, mount: mount);
+  }
+
+  _Route _addRoute({Pattern path, RouteHandler enter,
+      RouteHandler leave, mount}) {
     Router child;
     if (mount != null) {
       child = new Router();
@@ -83,8 +89,19 @@ class Router {
         mount.configureRouter(child);
       }
     }
-    _routes.add(new _Route(path: path, enter: enter, leave: leave,
-        child: child));
+    var route = new _Route(path: path, enter: enter, leave: leave,
+        child: child);
+    _routes.add(route);
+    return route;
+  }
+
+  void addDefaultRoute({Pattern path, RouteHandler enter,
+      RouteHandler leave, mount}) {
+    if (_defaultRoute != null) {
+      throw new StateError('Only one default route can be added.');
+    }
+    _defaultRoute = _addRoute(path: path, enter: enter, leave: leave,
+        mount: mount);
   }
 
   void addHandler(UrlPattern pattern, Handler handler) {
@@ -111,17 +128,25 @@ class Router {
    * with the path version of the URL by converting the # to a /.
    */
   Future handle(String path) {
+    _Route route;
     List matchingRoutes = _routes.where(
         (r) => matchesPrefix(r.path, path)).toList();
     if (!matchingRoutes.isEmpty) {
       if (matchingRoutes.length > 1) {
         _logger.warning("More than one route matches $path");
       }
-      _Route route = matchingRoutes.first;
-      var match = prefixMatch(route.path, path);
+      route = matchingRoutes.first;
+    } else {
+      if (_defaultRoute != null) {
+        route = _defaultRoute;
+      }
+    }
+    if (route != null) {
+      var match = _getMatch(route, path);
       var tailPath = path.substring(match.end);
+      var headPath = path.substring(0, match.end);
       if (!identical(route, _currentRoute)) {
-        return _processNewRoute(path, tailPath, match, route);
+        return _processNewRoute(path, tailPath, headPath, route);
       } else if (route.child != null)  {
         return route.child.handle(tailPath);
       }
@@ -138,9 +163,16 @@ class Router {
     return new Future.value();
   }
 
-  Future _processNewRoute(String path, String tailPath, Match match,
+  Match _getMatch(_Route route, String path) {
+    var match = prefixMatch(route.path, path);
+    if (match == null) { // default route
+      return new _MatchImpl(0);
+    }
+    return match;
+  }
+
+  Future _processNewRoute(String path, String tailPath, String headPath,
                           _Route route) {
-    var headPath = path.substring(0, match.end);
     var event = new RouteEvent(headPath);
     // before we make this a new current route, leave the old
     return _leaveCurrentRoute(event).then((bool allowNavigation) {
@@ -251,4 +283,9 @@ class Router {
         e.preventDefault();
         gotoUrl(url, args, title);
       };
+}
+
+class _MatchImpl implements Match {
+  final int end;
+  _MatchImpl(this.end);
 }
