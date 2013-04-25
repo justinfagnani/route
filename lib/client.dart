@@ -74,11 +74,7 @@ class Router {
             ? !History.supportsState
             : useFragment;
 
-  void addRoute({Pattern path, RouteHandler enter, RouteHandler leave, mount}) {
-    _addRoute(path: path, enter: enter, leave: leave, mount: mount);
-  }
-
-  _Route _addRoute({Pattern path, RouteHandler enter,
+  void addRoute({Pattern path, bool defaultRoute: false, RouteHandler enter,
       RouteHandler leave, mount}) {
     Router child;
     if (mount != null) {
@@ -91,17 +87,13 @@ class Router {
     }
     var route = new _Route(path: path, enter: enter, leave: leave,
         child: child);
-    _routes.add(route);
-    return route;
-  }
-
-  void addDefaultRoute({Pattern path, RouteHandler enter,
-      RouteHandler leave, mount}) {
-    if (_defaultRoute != null) {
-      throw new StateError('Only one default route can be added.');
+    if (defaultRoute) {
+      if (_defaultRoute != null) {
+        throw new StateError('Only one default route can be added.');
+      }
+      _defaultRoute = route;
     }
-    _defaultRoute = _addRoute(path: path, enter: enter, leave: leave,
-        mount: mount);
+    _routes.add(route);
   }
 
   void addHandler(UrlPattern pattern, Handler handler) {

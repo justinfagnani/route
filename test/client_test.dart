@@ -205,18 +205,19 @@ main() {
 
     _testHeadTail(String path, String expectFoo, String expectBar) {
       Router root = new Router()
-        ..addDefaultRoute(
+        ..addRoute(
             path: '/foo',
+            defaultRoute: true,
             enter: expectAsync1((RouteEvent e) {
               expect(e.path, expectFoo);
             }),
             mount: (router) =>
                 router
-                  ..addDefaultRoute(
+                  ..addRoute(
                       path: '/bar',
-                      enter: expectAsync1((RouteEvent e) {
-                        expect(e.path, expectBar);
-                      })));
+                      defaultRoute: true,
+                      enter: expectAsync1((RouteEvent e) =>
+                          expect(e.path, expectBar))));
 
       root.handle(path);
     }
@@ -233,6 +234,14 @@ main() {
       _testHeadTail('/foo/bar', '/foo', '/bar');
     });
 
+    test('should correctly calculate head/tail of an invalid parent route', () {
+      _testHeadTail('/garbage/bar', '', '');
+    });
+
+    test('should correctly calculate head/tail of an invalid child route', () {
+      _testHeadTail('/foo/garbage', '/foo', '');
+    });
+
     test('should follow default routes', () {
       Map<String, int> counters = <String, int>{
         'list_entered': 0,
@@ -242,16 +251,18 @@ main() {
       };
 
       Router root = new Router()
-        ..addDefaultRoute(
+        ..addRoute(
             path: '/articles',
+            defaultRoute: true,
             enter: (_) => counters['list_entered']++)
         ..addRoute(
             path: '/article/123',
             enter: (_) => counters['article_123_entered']++,
             mount: (Router router) =>
               router
-                ..addDefaultRoute(
+                ..addRoute(
                     path: '/view',
+                    defaultRoute: true,
                     enter: (_) => counters['article_123_view_entered']++)
                 ..addRoute(
                     path: '/edit',
