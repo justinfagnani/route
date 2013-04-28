@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:html';
 import 'package:unittest/unittest.dart';
+import 'package:unittest/mock.dart';
 import 'package:route/client.dart';
+import 'mocks.dart';
 
 main() {
 
@@ -290,13 +292,19 @@ main() {
   group('go', () {
 
     test('shoud go', () {
-      Router root = new Router(useFragment: true)
+      MockWindow mockWindow = new MockWindow();
+      Router root = new Router(useFragment: true, windowImpl: mockWindow)
         ..addRoute(
             name: 'articles',
             path: '/articles');
 
-      root.go('articles');
+      root.go('articles').then(expectAsync1((_) {
+        var mockLocation = mockWindow.location;
 
+        mockLocation.getLogs(callsTo('assign', anything)).verify(happenedExactly(1));
+        expect(mockLocation.getLogs(callsTo('assign', anything)).last.args, ['#/articles']);
+        mockLocation.getLogs(callsTo('replace', anything)).verify(happenedExactly(0));
+      }));
     });
 
   });
