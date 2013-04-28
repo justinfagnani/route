@@ -5,7 +5,7 @@
 library route.client;
 
 import 'dart:async';
-import 'dart:html' as html;
+import 'dart:html';
 import 'package:logging/logging.dart';
 import 'url_pattern.dart';
 export 'url_pattern.dart';
@@ -58,11 +58,11 @@ abstract class Routable {
  */
 class Router {
   final Map<String, _Route> _routes = new Map<String, _Route>();
-  bool _useFragment;
+  final bool useFragment;
+  final Window _window;
   _Route _defaultRoute;
   _Route _currentRoute;
   String _lastTail = '';
-  html.Window _window;
 
   /**
    * [useFragment] determines whether this Router uses pure paths with
@@ -70,12 +70,11 @@ class Router {
    * value is null which then determines the behavior based on
    * [History.supportsState].
    */
-  Router({bool useFragment, Window window}) {
-    _window = (window == null) ? html.window : window;
-    _useFragment = (useFragment == null)
-        ? !html.History.supportsState
-        : useFragment;
-  }
+  Router({bool useFragment, Window windowImpl})
+      : useFragment = (useFragment == null)
+            ? !History.supportsState
+            : useFragment,
+        _window = (windowImpl == null) ? window : windowImpl;
 
   void addRoute({String name, Pattern path, bool defaultRoute: false,
       RouteHandler enter, RouteHandler leave, mount}) {
@@ -224,7 +223,7 @@ class Router {
    * browsers the hashChange event is used instead.
    */
   void listen({bool ignoreClick: false}) {
-    if (_useFragment) {
+    if (useFragment) {
       _window.onHashChange.listen((_) {
         return route('#${_window.location.hash}');
       });
@@ -233,8 +232,8 @@ class Router {
     }
     if (!ignoreClick) {
       _window.onClick.listen((e) {
-        if (e.target is html.AnchorElement) {
-          html.AnchorElement anchor = e.target;
+        if (e.target is AnchorElement) {
+          AnchorElement anchor = e.target;
           if (anchor.host == _window.location.host) {
             var fragment = (anchor.hash == '') ? '' : '${anchor.hash}';
             gotoUrl("${anchor.pathname}$fragment", anchor.title);
@@ -262,9 +261,9 @@ class Router {
 
   void _go(String path, String title) {
     title = (title == null) ? '' : title;
-    if (_useFragment) {
+    if (useFragment) {
       _window.location.assign('#$path');
-      (_window.document as html.HtmlDocument).title = title;
+      (_window.document as HtmlDocument).title = title;
     } else {
       _window.history.pushState(null, title, path);
     }
