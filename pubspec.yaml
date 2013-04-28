@@ -7,9 +7,7 @@ homepage: https://github.com/dart-lang/route
 dependencies:
   browser: any
   logging: any
-
-dev_dependencies:
-  unittest: any
+  unittest: any # using 'matchers'
 
 environment:
   sdk: ">=0.4.7+1.r21548"

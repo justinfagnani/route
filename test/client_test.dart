@@ -4,69 +4,31 @@ import 'package:unittest/unittest.dart';
 import 'package:route/client.dart';
 
 main() {
-  test('URL is handled by the right handler', () {
-    var router = new Router();
-    var url1 = new UrlPattern(r'/');
-    var url2 = new UrlPattern(r'/foo/(\d+)');
-    var testPath = '/foo/123';
-
-    router.addHandler(url1, (String path) {
-      fail('should not have been called');
-    });
-
-    router.addHandler(url2, (String path) {
-      expect(path, testPath);
-    });
-
-    router.handle(testPath);
-  });
-
-  test('URL is handled by the right handler using fragments', () {
-    var router = new Router(useFragment: true);
-    var url2 = new UrlPattern(r'/foo#(\d+)');
-
-    var testPath = '/foo/123';
-    var testPathFragment = '/foo#123';
-
-    router.addHandler(url2, (String path) {
-      // always expect the non-fragment path
-      expect(path, testPath);
-    });
-
-    router.handle(testPath);
-    router.handle(testPathFragment);
-  });
 
   test('paths are routed to routes added with addRoute', () {
     var router = new Router();
     var testPath = '/foo';
 
     router.addRoute(
+      name: 'foo',
       path: '/foo',
       enter: (RouteEvent e) {
         print('enter');
         expect(true, true);
       });
 
-    router.handle(testPath);
-  });
-
-  test('click handler with fragment is routed when useFragment == true', () {
-    var router = new Router(useFragment: true);
-    var urlWithFragment = new UrlPattern(r'(.*)#fragment');
-    router.addHandler(urlWithFragment, expectAsync1((String path) {
-      expect(path, predicate((p) => p.endsWith('#fragment')));
-    }));
-    router.listen();
-    query('#a_with_fragment').click();
+    router.route(testPath);
   });
 
   test('addRoute', () {
     Router router = new Router();
-    router.addRoute(path: '/foo', enter: expectAsync1((RouteEvent e) {
-      expect(e.path, '/foo');
-    }));
-    router.handle('/foo');
+    router.addRoute(
+        name: 'foo',
+        path: '/foo',
+        enter: expectAsync1((RouteEvent e) {
+          expect(e.path, '/foo');
+        }));
+    router.route('/foo');
   });
 
   group('hierarchical routing', () {
@@ -79,16 +41,20 @@ main() {
         String testPath) {
       Router root = new Router();
       root.addRoute(
+          name: 'parent',
           path: parentPath,
           enter: expectAsync1((RouteEvent e) {
             expect(e.path, expectedParentPath);
           }),
           mount: (Router child) {
-            child.addRoute(path: childPath, enter: expectAsync1((RouteEvent e) {
-              expect(e.path, expectedChildPath);
-            }));
+            child.addRoute(
+                name: 'child',
+                path: childPath,
+                enter: expectAsync1((RouteEvent e) {
+                  expect(e.path, expectedChildPath);
+                }));
           });
-      root.handle(testPath);
+      root.route(testPath);
     }
 
     test('child router with UrlPattern', () {
@@ -124,14 +90,17 @@ main() {
       };
       Router root = new Router()
         ..addRoute(path: '/foo',
+            name: 'foo',
             enter: (RouteEvent e) => counters['fooEnter']++,
             leave: (RouteEvent e) => counters['fooLeave']++,
             mount: (Router router) =>
                 router
                     ..addRoute(path: '/bar',
+                        name: 'bar',
                         enter: (RouteEvent e) => counters['barEnter']++,
                         leave: (RouteEvent e) => counters['barLeave']++)
                     ..addRoute(path: '/baz',
+                        name: 'baz',
                         enter: (RouteEvent e) => counters['bazEnter']++,
                         leave: (RouteEvent e) => counters['bazLeave']++));
 
@@ -144,7 +113,7 @@ main() {
         'bazLeave': 0
       });
 
-      root.handle('/foo/bar').then(expectAsync1((_) {
+      root.route('/foo/bar').then(expectAsync1((_) {
         expect(counters, {
           'fooEnter': 1,
           'fooLeave': 0,
@@ -154,7 +123,7 @@ main() {
           'bazLeave': 0
         });
 
-        root.handle('/foo/baz').then(expectAsync1((_) {
+        root.route('/foo/baz').then(expectAsync1((_) {
           expect(counters, {
             'fooEnter': 1,
             'fooLeave': 0,
@@ -173,19 +142,19 @@ main() {
       bool bazEntered = false;
 
       Router root = new Router()
-        ..addRoute(path: '/foo',
+        ..addRoute(name: 'foo', path: '/foo',
             mount: (Router router) =>
               router
-                ..addRoute(path: '/bar',
+                ..addRoute(name: 'bar', path: '/bar',
                     enter: (RouteEvent e) => barEntered = true,
                     leave: (RouteEvent e) => e.allowLeave(completer.future))
-                ..addRoute(path: '/baz',
+                ..addRoute(name: 'baz', path: '/baz',
                     enter: (RouteEvent e) => bazEntered = true));
 
-      root.handle('/foo/bar').then(expectAsync1((_) {
+      root.route('/foo/bar').then(expectAsync1((_) {
         expect(barEntered, true);
         expect(bazEntered, false);
-        root.handle('/foo/baz').then(expectAsync1((_) {
+        root.route('/foo/baz').then(expectAsync1((_) {
           expect(bazEntered, allowLeave);
         }));
         completer.complete(allowLeave);
@@ -206,6 +175,7 @@ main() {
     _testHeadTail(String path, String expectFoo, String expectBar) {
       Router root = new Router()
         ..addRoute(
+            name: 'foo',
             path: '/foo',
             defaultRoute: true,
             enter: expectAsync1((RouteEvent e) {
@@ -214,12 +184,13 @@ main() {
             mount: (router) =>
                 router
                   ..addRoute(
+                      name: 'bar',
                       path: '/bar',
                       defaultRoute: true,
                       enter: expectAsync1((RouteEvent e) =>
                           expect(e.path, expectBar))));
 
-      root.handle(path);
+      root.route(path);
     }
 
     test('should correctly calculate head/tail of empty route', () {
@@ -252,51 +223,55 @@ main() {
 
       Router root = new Router()
         ..addRoute(
+            name: 'articles',
             path: '/articles',
             defaultRoute: true,
             enter: (_) => counters['list_entered']++)
         ..addRoute(
+            name: 'article',
             path: '/article/123',
             enter: (_) => counters['article_123_entered']++,
             mount: (Router router) =>
               router
                 ..addRoute(
+                    name: 'viewArticles',
                     path: '/view',
                     defaultRoute: true,
                     enter: (_) => counters['article_123_view_entered']++)
                 ..addRoute(
+                    name: 'editArticles',
                     path: '/edit',
                     enter: (_) => counters['article_123_edit_entered']++));
 
-      root.handle('').then((_) {
+      root.route('').then((_) {
         expect(counters, {
           'list_entered': 1, // default to list
           'article_123_entered': 0,
           'article_123_view_entered': 0,
           'article_123_edit_entered': 0
         });
-        root.handle('/articles').then((_) {
+        root.route('/articles').then((_) {
           expect(counters, {
             'list_entered': 1, // already current route
             'article_123_entered': 0,
             'article_123_view_entered': 0,
             'article_123_edit_entered': 0
           });
-          root.handle('/article/123').then((_) {
+          root.route('/article/123').then((_) {
             expect(counters, {
               'list_entered': 1,
               'article_123_entered': 1,
               'article_123_view_entered': 1, // default to view
               'article_123_edit_entered': 0
             });
-            root.handle('/article/123/view').then((_) {
+            root.route('/article/123/view').then((_) {
               expect(counters, {
                 'list_entered': 1,
                 'article_123_entered': 1,
                 'article_123_view_entered': 1, // already current route
                 'article_123_edit_entered': 0
               });
-              root.handle('/article/123/edit').then((_) {
+              root.route('/article/123/edit').then((_) {
                 expect(counters, {
                   'list_entered': 1,
                   'article_123_entered': 1,
@@ -308,6 +283,20 @@ main() {
           });
         });
       });
+    });
+
+  });
+
+  group('go', () {
+
+    test('shoud go', () {
+      Router root = new Router(useFragment: true)
+        ..addRoute(
+            name: 'articles',
+            path: '/articles');
+
+      root.go('articles');
+
     });
 
   });

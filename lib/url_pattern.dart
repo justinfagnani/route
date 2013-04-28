@@ -4,6 +4,8 @@
 
 library route.url_pattern;
 
+import 'url_matcher.dart';
+
 // From the PatternCharacter rule here:
 // http://ecma-international.org/ecma-262/5.1/#sec-15.10
 // removed '( and ')' since we'll never escape them when not in a group
@@ -78,7 +80,7 @@ UrlPattern urlPattern(String p) => new UrlPattern(p);
  *     pattern.reverse([1234], useFragment: true); // /app#profile/1234
  *     pattern.reverse([1234], useFragment: false); // /app/profile/1234
  */
-class UrlPattern implements Pattern {
+class UrlPattern implements UrlMatcher, Pattern {
   final String pattern;
   RegExp _regex;
   bool _hasFragment;
@@ -154,6 +156,20 @@ class UrlPattern implements Pattern {
       result.add(match[i]);
     }
     return result;
+  }
+
+  UrlMatch match(String url) {
+    var matches = allMatches(url);
+    if (matches.isEmpty) {
+      return null;
+    }
+    var match = matches.first;
+    var tail = url.substring(match.group(0).length);
+    Map parameters = new Map();
+    for (var i = 0; i < match.groupCount; i++) {
+      parameters[i] = match.group(i + 1);
+    }
+    return new UrlMatch(match.group(0), tail, parameters);
   }
 
   /**

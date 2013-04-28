@@ -5,22 +5,21 @@
 library route.client;
 
 import 'dart:async';
-import 'dart:html';
+import 'dart:html' as html;
 import 'package:logging/logging.dart';
 import 'url_pattern.dart';
 export 'url_pattern.dart';
 import 'pattern.dart';
+import 'url_matcher.dart';
+import 'url_template.dart';
+
 
 final _logger = new Logger('route');
 
-typedef Handler(String path);
-
 typedef RouteHandler(RouteEvent path);
 
-typedef void EventHandler(Event e);
-
 class _Route {
-  final Pattern path;
+  final UrlMatcher path;
   final RouteHandler enter;
   final RouteHandler leave;
   final Router child;
@@ -36,15 +35,16 @@ class _Route {
 
 class RouteEvent {
   final String path;
+  final Map parameters;
   Future<bool> _allowLeaveFuture;
 
-  RouteEvent(this.path);
+  RouteEvent(this.path, this.parameters);
 
   void allowLeave(Future<bool> allow) {
     _allowLeaveFuture = allow;
   }
 
-  RouteEvent _clone() => new RouteEvent(path);
+  RouteEvent _clone() => new RouteEvent(path, parameters);
 }
 
 abstract class Routable {
@@ -57,11 +57,12 @@ abstract class Routable {
  * and creating HTML event handlers that navigate to a URL.
  */
 class Router {
-  final Map<UrlPattern, Handler> _handlers = new Map<UrlPattern, Handler>();
-  final List<_Route> _routes = <_Route>[];
-  final bool useFragment;
+  final Map<String, _Route> _routes = new Map<String, _Route>();
+  bool _useFragment;
   _Route _defaultRoute;
   _Route _currentRoute;
+  String _lastTail = '';
+  html.Window _window;
 
   /**
    * [useFragment] determines whether this Router uses pure paths with
@@ -69,13 +70,21 @@ class Router {
    * value is null which then determines the behavior based on
    * [History.supportsState].
    */
-  Router({bool useFragment})
-      : useFragment = (useFragment == null)
-            ? !History.supportsState
-            : useFragment;
+  Router({bool useFragment, Window window}) {
+    _window = (window == null) ? html.window : window;
+    _useFragment = (useFragment == null)
+        ? !html.History.supportsState
+        : useFragment;
+  }
 
-  void addRoute({Pattern path, bool defaultRoute: false, RouteHandler enter,
-      RouteHandler leave, mount}) {
+  void addRoute({String name, Pattern path, bool defaultRoute: false,
+      RouteHandler enter, RouteHandler leave, mount}) {
+    if (name == null) {
+      throw new ArgumentError('name is required for all routes');
+    }
+    if (_routes.containsKey(name)) {
+      throw new ArgumentError('Route $name already exists');
+    }
     Router child;
     if (mount != null) {
       child = new Router();
@@ -85,7 +94,13 @@ class Router {
         mount.configureRouter(child);
       }
     }
-    var route = new _Route(path: path, enter: enter, leave: leave,
+    var matcher;
+    if (!(path is UrlMatcher)) {
+      matcher = new UrlTemplate(path.toString());
+    } else {
+      matcher = path;
+    }
+    var route = new _Route(path: matcher, enter: enter, leave: leave,
         child: child);
     if (defaultRoute) {
       if (_defaultRoute != null) {
@@ -93,19 +108,7 @@ class Router {
       }
       _defaultRoute = route;
     }
-    _routes.add(route);
-  }
-
-  void addHandler(UrlPattern pattern, Handler handler) {
-    _handlers[pattern] = handler;
-  }
-
-  UrlPattern _getUrl(path) {
-    var matches = _handlers.keys.where((url) => url.matches(path));
-    if (matches.isEmpty) {
-      throw new ArgumentError("No handler found for path: $path");
-    }
-    return matches.first;
+    _routes[name] = route;
   }
 
   /**
@@ -119,10 +122,11 @@ class Router {
    * If the UrlPattern contains a fragment (#), the handler is always called
    * with the path version of the URL by converting the # to a /.
    */
-  Future handle(String path) {
+  Future<bool> route(String path) {
+    _lastTail = path;
     _Route route;
-    List matchingRoutes = _routes.where(
-        (r) => matchesPrefix(r.path, path)).toList();
+    List matchingRoutes = _routes.values.where(
+        (r) => r.path.match(path) != null).toList();
     if (!matchingRoutes.isEmpty) {
       if (matchingRoutes.length > 1) {
         _logger.warning("More than one route matches $path");
@@ -135,37 +139,48 @@ class Router {
     }
     if (route != null) {
       var match = _getMatch(route, path);
-      var tailPath = path.substring(match.end);
-      var headPath = path.substring(0, match.end);
       if (!identical(route, _currentRoute)) {
-        return _processNewRoute(path, tailPath, headPath, route);
+        return _processNewRoute(path, match, route);
       } else if (route.child != null)  {
-        return route.child.handle(tailPath);
-      }
-    } else { // TODO(pavelgj): delete this
-      var url = _getUrl(path);
-      if (url != null) {
-        // always give handlers a non-fragment path
-        var fixedPath = url.reverse(url.parse(path));
-        _handlers[url](fixedPath);
-      } else {
-        _logger.info("Unhandled path: $path");
+        return route.child.route(match.tail);
       }
     }
-    return new Future.value();
+    return new Future.value(true);
   }
 
-  Match _getMatch(_Route route, String path) {
-    var match = prefixMatch(route.path, path);
+  Future go(String routePath, [Map parameters]) {
+    String newUrl = _lastTail + _getTailUrl(routePath, parameters);
+    return route(newUrl).then((success) {
+      if (success) {
+        _go(newUrl, null);
+      }
+    });
+  }
+
+  String _getTailUrl(routePath, Map parameters) {
+    var routeName = routePath.split('.').first;
+    if (!_routes.containsKey(routeName)) {
+      throw new StateError('Invalid route name: $routeName');
+    }
+    var routeToGo = _routes[routeName];
+    var tail = '';
+    if (routeToGo.child != null) {
+      tail = routeToGo.child.
+          _getTailUrl(routePath.substring(routeName.length), parameters);
+    }
+    return routeToGo.path.reverse(parameters: parameters, tail: tail);
+  }
+
+  UrlMatch _getMatch(_Route route, String path) {
+    var match = route.path.match(path);
     if (match == null) { // default route
-      return new _MatchImpl(0);
+      return new UrlMatch('', '', {});
     }
     return match;
   }
 
-  Future _processNewRoute(String path, String tailPath, String headPath,
-                          _Route route) {
-    var event = new RouteEvent(headPath);
+  Future<bool> _processNewRoute(String path, UrlMatch match, _Route route) {
+    var event = new RouteEvent(match.match, match.parameters);
     // before we make this a new current route, leave the old
     return _leaveCurrentRoute(event).then((bool allowNavigation) {
       if (allowNavigation) {
@@ -174,9 +189,10 @@ class Router {
           route.enter(event);
         }
         if (route.child != null) {
-          return route.child.handle(tailPath);
+          return route.child.route(match.tail);
         }
       }
+      return true;
     });
   }
 
@@ -208,20 +224,20 @@ class Router {
    * browsers the hashChange event is used instead.
    */
   void listen({bool ignoreClick: false}) {
-    if (useFragment) {
-      window.onHashChange.listen((_) {
-        return handle('${window.location.pathname}#${window.location.hash}');
+    if (_useFragment) {
+      _window.onHashChange.listen((_) {
+        return route('#${_window.location.hash}');
       });
     } else {
-      window.onPopState.listen((_) => handle(window.location.pathname));
+      _window.onPopState.listen((_) => route(_window.location.pathname));
     }
     if (!ignoreClick) {
-      window.onClick.listen((e) {
-        if (e.target is AnchorElement) {
-          AnchorElement anchor = e.target;
-          if (anchor.host == window.location.host) {
+      _window.onClick.listen((e) {
+        if (e.target is html.AnchorElement) {
+          html.AnchorElement anchor = e.target;
+          if (anchor.host == _window.location.host) {
             var fragment = (anchor.hash == '') ? '' : '${anchor.hash}';
-            gotoPath("${anchor.pathname}$fragment", anchor.title);
+            gotoUrl("${anchor.pathname}$fragment", anchor.title);
             e.preventDefault();
           }
         }
@@ -236,48 +252,21 @@ class Router {
    * On older browsers [Location.assign] is used instead with the fragment
    * version of the UrlPattern.
    */
-  void gotoUrl(UrlPattern url, List args, String title) {
-    if (_handlers.containsKey(url)) {
-      _go(url.reverse(args, useFragment: useFragment), title);
-      _handlers[url](url.reverse(args, useFragment: useFragment));
-    } else {
-      throw new ArgumentError('Unknown URL pattern: $url');
-    }
-  }
-
-  void gotoPath(String path, String title) {
-    var url = _getUrl(path);
-    if (url != null) {
-      _go(path, title);
-      _handlers[url](path);
-    }
+  Future<bool> gotoUrl(String url) {
+    return route(url).then((success) {
+      if (success) {
+        _go(url, null);
+      }
+    });
   }
 
   void _go(String path, String title) {
     title = (title == null) ? '' : title;
-    if (useFragment) {
-      window.location.assign(path);
-      (window.document as HtmlDocument).title = title;
+    if (_useFragment) {
+      _window.location.assign('#$path');
+      (_window.document as html.HtmlDocument).title = title;
     } else {
-      window.history.pushState(null, title, path);
+      _window.history.pushState(null, title, path);
     }
   }
-
-  /**
-   * Returns an [Event] handler suitable for use as a click handler on [:<a>;]
-   * elements. The handler reverses [ur] with [args] and uses [window.pushState]
-   * with [title] to change the user visible URL without navigating to it.
-   * [Event.preventDefault] is called to stop the default behavior. Then the
-   * handler associated with [url] is invoked with [args].
-   */
-  EventHandler clickHandler(UrlPattern url, List args, String title) =>
-      (Event e) {
-        e.preventDefault();
-        gotoUrl(url, args, title);
-      };
-}
-
-class _MatchImpl implements Match {
-  final int end;
-  _MatchImpl(this.end);
 }
