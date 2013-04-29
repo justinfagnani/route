@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<!--
+Copyright (c) 2012, the Dart project authors.  Please see the AUTHORS file
+for details. All rights reserved. Use of this source code is governed by a
+BSD-style license that can be found in the LICENSE file.
+-->
+<html lang="en">
+  <head>
+    <title>client_test</title>
+    <div><a id="a_with_path" href="/path">/path</a></div>
+    <div><a id="a_with_fragment" href="#fragment">#fragment</a></div>
+  </head>
+  <body>
+    <script type="application/javascript">
+if (navigator.webkitStartDart) {
+  navigator.webkitStartDart();
+}
+    </script>
+    <script type="application/dart">
+import 'dart:html';
+import 'package:unittest/unittest.dart';
+import 'package:route/client.dart';
+
+main() {
+  test('route after calling listen when useFragment == true', () {
+    var router = new Router(useFragment: true);
+    var urlWithFragment = new UrlPattern(r'(.*)#fragment');
+    router.addHandler(urlWithFragment, expectAsync1((String path) {
+      expect(path, predicate((p) => p.endsWith('fragment')));
+    }));
+    window.location.hash = "fragment";
+    expect(router.listen(), true);
+  });
+}
+    </script>
+  </body>
+</html>
