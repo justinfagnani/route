@@ -8,9 +8,9 @@ import 'dart:html';
 import 'package:unittest/mock.dart';
 
 class MockWindow extends Mock implements Window {
-  History history = new MockHistory();
-  Location location = new MockLocation();
-  Document document = new MockDocument();
+  MockHistory history = new MockHistory();
+  MockLocation location = new MockLocation();
+  MockDocument document = new MockDocument();
 }
 
 class MockHistory extends Mock implements History {}

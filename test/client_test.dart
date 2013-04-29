@@ -347,6 +347,36 @@ main() {
       }));
     });
 
+    test('should work with hierarchical go', () {
+      MockWindow mockWindow = new MockWindow();
+      Router root = new Router(windowImpl: mockWindow)
+        ..addRoute(
+            name: 'a',
+            path: '/:foo',
+            mount: (router) =>
+                router
+                  ..addRoute(
+                      name: 'b',
+                      path: '/:bar'));
+
+      root.go('a.b', {}).then((_) {
+        var mockHistory = mockWindow.history;
+
+        mockHistory.getLogs(callsTo('pushState', anything))
+            .verify(happenedExactly(1));
+        expect(mockHistory.getLogs(callsTo('pushState', anything)).last.args,
+            [null, '', '/null/null']);
+
+        root.go('a.b', {'foo': 'aaa', 'bar': 'bbb'}).then((_) {
+          mockHistory.getLogs(callsTo('pushState', anything))
+              .verify(happenedExactly(2));
+          expect(mockHistory.getLogs(callsTo('pushState', anything)).last.args,
+              [null, '', '/aaa/bbb']);
+        });
+      });
+
+    });
+
   });
 
 }

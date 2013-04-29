@@ -163,9 +163,10 @@ class Router {
     }
     var routeToGo = _routes[routeName];
     var tail = '';
-    if (routeToGo.child != null) {
+    var childPath = routePath.substring(routeName.length);
+    if (routeToGo.child != null && childPath.length > 0) {
       tail = routeToGo.child.
-          _getTailUrl(routePath.substring(routeName.length), parameters);
+          _getTailUrl(childPath.substring(1), parameters);
     }
     return routeToGo.path.reverse(parameters: parameters, tail: tail);
   }
