@@ -55,6 +55,36 @@ main() {
     router.handle(testPathFragment);
   });
 
+  group('prevent handling the same path twice with pushState after', () {
+    var router;
+    var url = new UrlPattern(r'/foo#(\d+)');
+    var testPath = '/foo/123';
+    setUp(() {
+      router = new Router();
+    });
+    test('handle', () {
+      router.addHandler(url, expectAsync1((String path) {
+        expect(path, predicate((p) => p.endsWith('/foo/123')));
+      }));
+      router.handle(testPath);
+      router.handle(testPath);
+    });
+    test('gotoPath', () {
+      router.addHandler(url, expectAsync1((String path) {
+        expect(path, predicate((p) => p.endsWith('/foo/123')));
+      }));
+      router.gotoPath(testPath, '');
+      router.handle(testPath);
+    });
+    test('gotoUrl', () {
+      router.addHandler(url, expectAsync1((String path) {
+        expect(path, predicate((p) => p.endsWith('/foo/123')));
+      }));
+      router.gotoUrl(url, ['123'], '');
+      router.handle(testPath);
+    });
+  });
+
   test('click handler with fragment is routed when useFragment == true', () {
     var router = new Router(useFragment: true);
     var urlWithFragment = new UrlPattern(r'(.*)#fragment');
