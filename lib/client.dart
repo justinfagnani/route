@@ -121,8 +121,8 @@ class Router {
    * If the UrlPattern contains a fragment (#), the handler is always called
    * with the path version of the URL by converting the # to a /.
    */
-  Future<bool> route(String path) {
-    _lastTail = path;
+  Future<bool> route(String path, {String prefix: ''}) {
+    _lastTail = prefix;
     _Route route;
     List matchingRoutes = _routes.values.where(
         (r) => r.path.match(path) != null).toList();
@@ -139,19 +139,19 @@ class Router {
     if (route != null) {
       var match = _getMatch(route, path);
       if (!identical(route, _currentRoute)) {
-        return _processNewRoute(path, match, route);
+        return _processNewRoute(path, match, route, prefix + match.match);
       } else if (route.child != null)  {
-        return route.child.route(match.tail);
+        return route.child.route(match.tail, prefix: prefix + match.match);
       }
     }
     return new Future.value(true);
   }
 
-  Future go(String routePath, [Map parameters]) {
+  Future go(String routePath, Map parameters, {bool replace: false}) {
     String newUrl = _lastTail + _getTailUrl(routePath, parameters);
-    return route(newUrl).then((success) {
+    return route(newUrl, prefix: _lastTail).then((success) {
       if (success) {
-        _go(newUrl, null);
+        _go(newUrl, null, replace);
       }
     });
   }
@@ -178,7 +178,8 @@ class Router {
     return match;
   }
 
-  Future<bool> _processNewRoute(String path, UrlMatch match, _Route route) {
+  Future<bool> _processNewRoute(String path, UrlMatch match, _Route route,
+                                String prefix) {
     var event = new RouteEvent(match.match, match.parameters);
     // before we make this a new current route, leave the old
     return _leaveCurrentRoute(event).then((bool allowNavigation) {
@@ -188,7 +189,7 @@ class Router {
           route.enter(event);
         }
         if (route.child != null) {
-          return route.child.route(match.tail);
+          return route.child.route(match.tail, prefix: prefix);
         }
       }
       return true;
@@ -259,13 +260,21 @@ class Router {
     });
   }
 
-  void _go(String path, String title) {
+  void _go(String path, String title, bool replace) {
     title = (title == null) ? '' : title;
     if (useFragment) {
-      _window.location.assign('#$path');
+      if (replace) {
+        _window.location.replace('#$path');
+      } else {
+        _window.location.assign('#$path');
+      }
       (_window.document as HtmlDocument).title = title;
     } else {
-      _window.history.pushState(null, title, path);
+      if (replace) {
+        _window.history.replaceState(null, title, path);
+      } else {
+        _window.history.pushState(null, title, path);
+      }
     }
   }
 }

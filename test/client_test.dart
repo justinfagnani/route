@@ -291,19 +291,59 @@ main() {
 
   group('go', () {
 
-    test('shoud go', () {
+    test('shoud location.assign/replace when useFragment=true', () {
       MockWindow mockWindow = new MockWindow();
       Router root = new Router(useFragment: true, windowImpl: mockWindow)
         ..addRoute(
             name: 'articles',
             path: '/articles');
 
-      root.go('articles').then(expectAsync1((_) {
+      root.go('articles', {}).then(expectAsync1((_) {
         var mockLocation = mockWindow.location;
 
-        mockLocation.getLogs(callsTo('assign', anything)).verify(happenedExactly(1));
-        expect(mockLocation.getLogs(callsTo('assign', anything)).last.args, ['#/articles']);
-        mockLocation.getLogs(callsTo('replace', anything)).verify(happenedExactly(0));
+        mockLocation.getLogs(callsTo('assign', anything))
+            .verify(happenedExactly(1));
+        expect(mockLocation.getLogs(callsTo('assign', anything)).last.args,
+            ['#/articles']);
+        mockLocation.getLogs(callsTo('replace', anything))
+            .verify(happenedExactly(0));
+
+        root.go('articles', {}, replace: true).then(expectAsync1((_) {
+          mockLocation.getLogs(callsTo('replace', anything))
+              .verify(happenedExactly(1));
+          expect(mockLocation.getLogs(callsTo('replace', anything)).last.args,
+              ['#/articles']);
+          mockLocation.getLogs(callsTo('assign', anything))
+              .verify(happenedExactly(1));
+        }));
+      }));
+    });
+
+    test('shoud history.push/replaceState when useFragment=false', () {
+      MockWindow mockWindow = new MockWindow();
+      Router root = new Router(useFragment: false, windowImpl: mockWindow)
+        ..addRoute(
+            name: 'articles',
+            path: '/articles');
+
+      root.go('articles', {}).then(expectAsync1((_) {
+        var mockHistory = mockWindow.history;
+
+        mockHistory.getLogs(callsTo('pushState', anything))
+            .verify(happenedExactly(1));
+        expect(mockHistory.getLogs(callsTo('pushState', anything)).last.args,
+            [null, '', '/articles']);
+        mockHistory.getLogs(callsTo('replaceState', anything))
+            .verify(happenedExactly(0));
+
+        root.go('articles', {}, replace: true).then(expectAsync1((_) {
+          mockHistory.getLogs(callsTo('replaceState', anything))
+              .verify(happenedExactly(1));
+          expect(mockHistory.getLogs(callsTo('replaceState', anything)).last.args,
+              [null, '', '/articles']);
+          mockHistory.getLogs(callsTo('pushState', anything))
+              .verify(happenedExactly(1));
+        }));
       }));
     });
 
