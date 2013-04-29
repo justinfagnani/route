@@ -23,6 +23,7 @@ typedef void EventHandler(Event e);
 class Router {
   final Map<UrlPattern, Handler> _handlers;
   final bool useFragment;
+  String _currentPath;
 
   /**
    * [useFragment] determines whether this Router uses pure paths with
@@ -47,7 +48,7 @@ class Router {
     }
     return matches.first;
   }
-  
+
   /**
    * Finds a matching [UrlPattern] added with [addHandler], parses the path
    * and invokes the associated callback.
@@ -59,12 +60,15 @@ class Router {
    * If the UrlPattern contains a fragment (#), the handler is always called
    * with the path version of the URL by converting the # to a /.
    */
-  void handle(String path) {
+  void handle(String path, {bool force: false}) {
     var url = _getUrl(path);
     if (url != null) {
       // always give handlers a non-fragment path
       var fixedPath = url.reverse(url.parse(path));
-      _handlers[url](fixedPath);      
+      if (force || fixedPath != _currentPath) {
+        _currentPath = fixedPath;
+        _handlers[url](fixedPath);
+      }
     } else {
       _logger.info("Unhandled path: $path");
     }
@@ -73,28 +77,43 @@ class Router {
   /**
    * Listens for window history events and invokes the router. On older
    * browsers the hashChange event is used instead.
+   *
+   * Handle routing for the current path which leads to consitent behavior
+   * for all browsers.
    */
-  void listen({bool ignoreClick: false}) {
-    if (useFragment) {
-      window.onHashChange.listen((_) {
-        print("location: ${window.location}");
-        return handle('${window.location.pathname}#${window.location.hash}');
-      });
-    } else {
-      window.onPopState.listen((_) => handle(window.location.pathname));
-    }
+  bool listen({bool ignoreClick: false}) {
+    var currentPathMatched = true;
     if (!ignoreClick) {
       window.onClick.listen((e) {
         if (e.target is AnchorElement) {
           AnchorElement anchor = e.target;
           if (anchor.host == window.location.host) {
-            var fragment = (anchor.hash == '') ? '' : '${anchor.hash}'; 
+            var fragment = (anchor.hash == '') ? '' : '${anchor.hash}';
             gotoPath("${anchor.pathname}$fragment", anchor.title);
             e.preventDefault();
           }
         }
       });
     }
+    if (useFragment) {
+      try {
+        handle('${window.location.pathname}${window.location.hash}');
+      } on ArgumentError catch (e) {
+        currentPathMatched = false;
+      }
+      window.onHashChange.listen((_) {
+        print("location: ${window.location}");
+        handle('${window.location.pathname}${window.location.hash}');
+      });
+    } else {
+      try {
+        handle(window.location.pathname);
+      } on ArgumentError catch (e) {
+        currentPathMatched = false;
+      }
+      window.onPopState.listen((_) => handle(window.location.pathname));
+    }
+    return currentPathMatched;
   }
 
   /**
@@ -106,17 +125,20 @@ class Router {
    */
   void gotoUrl(UrlPattern url, List args, String title) {
     if (_handlers.containsKey(url)) {
-      _go(url.reverse(args, useFragment: useFragment), title);
-      _handlers[url](url.reverse(args, useFragment: useFragment));
+      var fixedPath = url.reverse(args, useFragment: useFragment);
+      _go(fixedPath, title);
+      _currentPath = fixedPath;
+      _handlers[url](fixedPath);
     } else {
       throw new ArgumentError('Unknown URL pattern: $url');
     }
   }
-  
+
   void gotoPath(String path, String title) {
     var url = _getUrl(path);
     if (url != null) {
       _go(path, title);
+      _currentPath = path;
       _handlers[url](path);
     }
   }
@@ -130,7 +152,7 @@ class Router {
       window.history.pushState(null, title, path);
     }
   }
-  
+
   /**
    * Returns an [Event] handler suitable for use as a click handler on [:<a>;]
    * elements. The handler reverses [ur] with [args] and uses [window.pushState]
