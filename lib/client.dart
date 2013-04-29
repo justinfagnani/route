@@ -29,8 +29,6 @@ class _Route {
   }
 
   _Route({this.path, this.enter, this.leave, this.child});
-
-  bool matches(String matchPath) => matchesPrefix(path, matchPath);
 }
 
 class RouteEvent {
@@ -62,7 +60,7 @@ class Router {
   final Window _window;
   _Route _defaultRoute;
   _Route _currentRoute;
-  String _lastTail = '';
+  String _lastHead = '';
 
   /**
    * [useFragment] determines whether this Router uses pure paths with
@@ -121,8 +119,8 @@ class Router {
    * If the UrlPattern contains a fragment (#), the handler is always called
    * with the path version of the URL by converting the # to a /.
    */
-  Future<bool> route(String path, {String prefix: ''}) {
-    _lastTail = prefix;
+  Future<bool> route(String path, {String head: ''}) {
+    _lastHead = head;
     _Route route;
     List matchingRoutes = _routes.values.where(
         (r) => r.path.match(path) != null).toList();
@@ -139,17 +137,17 @@ class Router {
     if (route != null) {
       var match = _getMatch(route, path);
       if (!identical(route, _currentRoute)) {
-        return _processNewRoute(path, match, route, prefix + match.match);
+        return _processNewRoute(path, match, route, head + match.match);
       } else if (route.child != null)  {
-        return route.child.route(match.tail, prefix: prefix + match.match);
+        return route.child.route(match.tail, head: head + match.match);
       }
     }
     return new Future.value(true);
   }
 
   Future go(String routePath, Map parameters, {bool replace: false}) {
-    String newUrl = _lastTail + _getTailUrl(routePath, parameters);
-    return route(newUrl, prefix: _lastTail).then((success) {
+    String newUrl = _lastHead + _getTailUrl(routePath, parameters);
+    return route(newUrl, head: _lastHead).then((success) {
       if (success) {
         _go(newUrl, null, replace);
       }
@@ -180,7 +178,7 @@ class Router {
   }
 
   Future<bool> _processNewRoute(String path, UrlMatch match, _Route route,
-                                String prefix) {
+                                String head) {
     var event = new RouteEvent(match.match, match.parameters);
     // before we make this a new current route, leave the old
     return _leaveCurrentRoute(event).then((bool allowNavigation) {
@@ -190,7 +188,7 @@ class Router {
           route.enter(event);
         }
         if (route.child != null) {
-          return route.child.route(match.tail, prefix: prefix);
+          return route.child.route(match.tail, head: head);
         }
       }
       return true;
