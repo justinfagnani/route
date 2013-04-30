@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+
+<html>
+  <body>
+    <element name="x-simple-company-info" constructor="SimpleCompanyInfoComponent" extends="div">
+      <template>
+        <template if="company != null">
+          <h4>{{company['name']}}</h4>
+          <p>id: {{company['id']}}</p>
+          <p>revenue: {{company['revenue']}}</p>
+        </template>
+        <script type="application/dart" src="simple-company-info.dart"></script>
+      </template>
+    </element>
+  </body>
+</html>

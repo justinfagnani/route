@@ -9,20 +9,20 @@ final two = new UrlPattern('/two');
 main() {
   query('#warning').remove();
   query('#one').classes.add('selected');
-  
-  var router = new Router()
-    ..addHandler(one, showOne)
-    ..addHandler(two, showTwo)
+
+  var router = new Router(useFragment: true)
+    ..addRoute(name: 'one', path: one, enter: showOne)
+    ..addRoute(name: 'two', path: two, enter: showTwo)
     ..listen();
 }
 
-void showOne(String path) {
+void showOne(RouteEvent e) {
   print("showOne");
   query('#one').classes.add('selected');
   query('#two').classes.remove('selected');
 }
 
-void showTwo(String path) {
+void showTwo(RouteEvent e) {
   print("showTwo");
   query('#one').classes.remove('selected');
   query('#two').classes.add('selected');
