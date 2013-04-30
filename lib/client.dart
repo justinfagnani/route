@@ -23,6 +23,7 @@ typedef void EventHandler(Event e);
 class Router {
   final Map<UrlPattern, Handler> _handlers;
   final bool useFragment;
+  bool _listen = false;
 
   /**
    * [useFragment] determines whether this Router uses pure paths with
@@ -37,6 +38,7 @@ class Router {
             : useFragment;
 
   void addHandler(UrlPattern pattern, Handler handler) {
+    _logger.finest('addHandler $pattern');
     _handlers[pattern] = handler;
   }
 
@@ -60,6 +62,7 @@ class Router {
    * with the path version of the URL by converting the # to a /.
    */
   void handle(String path) {
+    _logger.finest('handle $path');
     var url = _getUrl(path);
     if (url != null) {
       // always give handlers a non-fragment path
@@ -75,13 +78,24 @@ class Router {
    * browsers the hashChange event is used instead.
    */
   void listen({bool ignoreClick: false}) {
+    _logger.finest('listen ignoreClick=$ignoreClick useFragment=$useFragment');
+    if (_listen) {
+      throw new StateError('listen should be called once.');
+    }
+    _listen = true;
     if (useFragment) {
       window.onHashChange.listen((_) {
-        print("location: ${window.location}");
-        return handle('${window.location.pathname}#${window.location.hash}');
+        var path = '${window.location.pathname}${window.location.hash}';
+        _logger.finest('onHashChange handle($path)');
+        return handle(path);
       });
+      handle('${window.location.pathname}${window.location.hash}');
     } else {
-      window.onPopState.listen((_) => handle(window.location.pathname));
+      window.onPopState.listen((_) {
+        var path = '${window.location.pathname}${window.location.hash}';
+        _logger.finest('onPopState handle($path)');
+        handle(path);
+      });
     }
     if (!ignoreClick) {
       window.onClick.listen((e) {
@@ -114,10 +128,14 @@ class Router {
   }
   
   void gotoPath(String path, String title) {
+    _logger.finest('gotoPath $path');
     var url = _getUrl(path);
     if (url != null) {
       _go(path, title);
-      _handlers[url](path);
+      // If useFragment, onHashChange will call handle for us.
+      if (!_listen || !useFragment) {
+        _handlers[url](path);
+      }
     }
   }
 
