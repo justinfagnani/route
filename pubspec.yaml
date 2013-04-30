@@ -9,5 +9,8 @@ dependencies:
   logging: any
   unittest: any # using 'matchers'
 
+dev_dependencies:
+  web_ui: any
+
 environment:
   sdk: ">=0.4.7+1.r21548"

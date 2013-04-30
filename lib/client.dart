@@ -23,12 +23,17 @@ class _Route {
   final RouteHandler enter;
   final RouteHandler leave;
   final Router child;
+  RouteEvent lastEvent;
 
   String toString() {
     return 'Route:' + path.toString();
   }
 
   _Route({this.path, this.enter, this.leave, this.child});
+
+  String reverse(String tail) {
+    return path.reverse(parameters: lastEvent.parameters, tail: tail);
+  }
 }
 
 class RouteEvent {
@@ -56,11 +61,17 @@ abstract class Routable {
  */
 class Router {
   final Map<String, _Route> _routes = new Map<String, _Route>();
-  final bool useFragment;
+  final bool _useFragment;
   final Window _window;
+  final StreamController<RouteEvent> _onRouteController;
+  final StreamController<RouteEvent> _onLeaveController;
+  final Router _parent;
   _Route _defaultRoute;
   _Route _currentRoute;
-  String _lastHead = '';
+  String _lastPath;
+
+  Stream<RouteEvent> get onRoute => _onRouteController.stream;
+  Stream<RouteEvent> get onLeave => _onLeaveController.stream;
 
   /**
    * [useFragment] determines whether this Router uses pure paths with
@@ -69,10 +80,19 @@ class Router {
    * [History.supportsState].
    */
   Router({bool useFragment, Window windowImpl})
-      : useFragment = (useFragment == null)
+      : this._init(null, useFragment: useFragment, windowImpl: windowImpl);
+
+  Router._init(Router parent, {bool useFragment, Window windowImpl})
+      : _useFragment = (useFragment == null)
             ? !History.supportsState
             : useFragment,
-        _window = (windowImpl == null) ? window : windowImpl;
+        _window = (windowImpl == null) ? window : windowImpl,
+        _onRouteController = new StreamController<RouteEvent>(),
+        _onLeaveController = new StreamController<RouteEvent>(),
+        _parent = parent;
+
+  Router._childOf(Router parent, {bool useFragment, Window windowImpl})
+      : this._init(parent, useFragment: useFragment, windowImpl: windowImpl);
 
   void addRoute({String name, Pattern path, bool defaultRoute: false,
       RouteHandler enter, RouteHandler leave, mount}) {
@@ -84,7 +104,7 @@ class Router {
     }
     Router child;
     if (mount != null) {
-      child = new Router();
+      child = new Router._childOf(this, windowImpl: _window, useFragment: _useFragment);
       if (mount is Function) {
         mount(child);
       } else if (mount is Routable) {
@@ -108,6 +128,34 @@ class Router {
     _routes[name] = route;
   }
 
+  Future removeRoute(String name) {
+    var route = _routes[name];
+    if (route == null) {
+      throw new ArgumentError('Route $name does not exist.');
+    }
+    if (identical(route, _currentRoute)) {
+      return _leaveCurrentRoute(_currentRoute.lastEvent).then((allowed) {
+        if (allowed) {
+          _actuallyRemoveRoute(name);
+        }
+        return allowed;
+      });
+    } else {
+      _actuallyRemoveRoute(name);
+      return new Future.value(true);
+    }
+  }
+
+  _actuallyRemoveRoute(String name) {
+    var route = _routes.remove(name);
+    if (identical(route, _currentRoute)) {
+      _currentRoute = null;
+    }
+    if (identical(route, _defaultRoute)) {
+      _defaultRoute = null;
+    }
+  }
+
   /**
    * Finds a matching [UrlPattern] added with [addHandler], parses the path
    * and invokes the associated callback.
@@ -119,8 +167,9 @@ class Router {
    * If the UrlPattern contains a fragment (#), the handler is always called
    * with the path version of the URL by converting the # to a /.
    */
-  Future<bool> route(String path, {String head: ''}) {
-    _lastHead = head;
+  Future<bool> route(String path) {
+    _logger.finest('route $path');
+    _lastPath = path;
     _Route route;
     List matchingRoutes = _routes.values.where(
         (r) => r.path.match(path) != null).toList();
@@ -137,21 +186,48 @@ class Router {
     if (route != null) {
       var match = _getMatch(route, path);
       if (!identical(route, _currentRoute)) {
-        return _processNewRoute(path, match, route, head + match.match);
-      } else if (route.child != null)  {
-        return route.child.route(match.tail, head: head + match.match);
+        return _processNewRoute(path, match, route);
+      } else {
+        _currentRoute.lastEvent = new RouteEvent(match.match, match.parameters);
+        if (route.child != null)  {
+          return route.child.route(match.tail);
+        }
       }
+      return new Future.value(true);
     }
-    return new Future.value(true);
+    return new Future.value(false);
+  }
+
+  reroute() {
+    if (_lastPath == null) {
+      throw new StateError('Cannot reroute, was never routed before.');
+    }
+    route(_lastPath);
   }
 
   Future go(String routePath, Map parameters, {bool replace: false}) {
-    String newUrl = _lastHead + _getTailUrl(routePath, parameters);
-    return route(newUrl, head: _lastHead).then((success) {
+    String newUrl = _getHead(_getTailUrl(routePath, parameters));
+    return route(newUrl).then((success) {
       if (success) {
         _go(newUrl, null, replace);
       }
+      return success;
     });
+  }
+
+  String url(String routePath, [Map parameters]) {
+    parameters = parameters == null ? {} : parameters;
+    return (_useFragment? '#' : '') +_getHead(_getTailUrl(routePath, parameters));
+  }
+
+  String _getHead(String tail) {
+    if (_parent == null) {
+      return tail;
+    }
+    if (_parent._currentRoute == null) {
+      throw new StateError('Router $_parent has no current router.');
+    }
+    return _parent._getHead(_parent._currentRoute.reverse(tail));
   }
 
   String _getTailUrl(routePath, Map parameters) {
@@ -177,22 +253,33 @@ class Router {
     return match;
   }
 
-  Future<bool> _processNewRoute(String path, UrlMatch match, _Route route,
-                                String head) {
+  Future<bool> _processNewRoute(String path, UrlMatch match, _Route route) {
     var event = new RouteEvent(match.match, match.parameters);
     // before we make this a new current route, leave the old
     return _leaveCurrentRoute(event).then((bool allowNavigation) {
       if (allowNavigation) {
+        _unsetAllCurrentRoutes();
         _currentRoute = route;
+        _currentRoute.lastEvent = new RouteEvent(match.match, match.parameters);
         if (route.enter != null) {
           route.enter(event);
         }
         if (route.child != null) {
-          return route.child.route(match.tail, head: head);
+          route.child._onRouteController.add(event);
+          return route.child.route(match.tail);
         }
       }
       return true;
     });
+  }
+
+  void _unsetAllCurrentRoutes() {
+    if (_currentRoute != null) {
+      if (_currentRoute.child != null) {
+        _currentRoute.child._unsetAllCurrentRoutes();
+      }
+      _currentRoute = null;
+    }
   }
 
   Future<bool> _leaveCurrentRoute(RouteEvent e) =>
@@ -212,7 +299,8 @@ class Router {
         futures.add(event._allowLeaveFuture);
       }
       if (_currentRoute.child != null) {
-        futures.addAll(_currentRoute.child._leaveCurrentRoute(event));
+        _currentRoute.child._onLeaveController.add(event);
+        futures.addAll(_currentRoute.child._leaveCurrentRouteHelper(event));
       }
     }
     return futures;
@@ -223,10 +311,11 @@ class Router {
    * browsers the hashChange event is used instead.
    */
   void listen({bool ignoreClick: false}) {
-    if (useFragment) {
+    if (_useFragment) {
       _window.onHashChange.listen((_) {
-        return route('#${_window.location.hash}');
+        return route(_normalizeHash(_window.location.hash));
       });
+      route(_normalizeHash(_window.location.hash));
     } else {
       _window.onPopState.listen((_) => route(_window.location.pathname));
     }
@@ -235,13 +324,24 @@ class Router {
         if (e.target is AnchorElement) {
           AnchorElement anchor = e.target;
           if (anchor.host == _window.location.host) {
-            var fragment = (anchor.hash == '') ? '' : '${anchor.hash}';
-            gotoUrl("${anchor.pathname}$fragment", anchor.title);
             e.preventDefault();
+            var fragment = (anchor.hash == '') ? '' : '${anchor.hash}';
+            route('${anchor.pathname}$fragment').then((allowed) {
+              if (allowed) {
+                _go("${anchor.pathname}$fragment", null, false);
+              }
+            });
           }
         }
       });
     }
+  }
+
+  String _normalizeHash(String hash) {
+    if (hash.isEmpty) {
+      return '';
+    }
+    return hash.substring(1);
   }
 
   /**
@@ -261,7 +361,7 @@ class Router {
 
   void _go(String path, String title, bool replace) {
     title = (title == null) ? '' : title;
-    if (useFragment) {
+    if (_useFragment) {
       if (replace) {
         _window.location.replace('#$path');
       } else {

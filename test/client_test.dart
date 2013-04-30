@@ -349,17 +349,18 @@ main() {
 
     test('should work with hierarchical go', () {
       MockWindow mockWindow = new MockWindow();
+      Router bRouter;
       Router root = new Router(windowImpl: mockWindow)
         ..addRoute(
             name: 'a',
             path: '/:foo',
             mount: (router) =>
-                router
+                bRouter = router
                   ..addRoute(
                       name: 'b',
                       path: '/:bar'));
 
-      root.go('a.b', {}).then((_) {
+      root.go('a.b', {}).then(expectAsync1((_) {
         var mockHistory = mockWindow.history;
 
         mockHistory.getLogs(callsTo('pushState', anything))
@@ -367,14 +368,66 @@ main() {
         expect(mockHistory.getLogs(callsTo('pushState', anything)).last.args,
             [null, '', '/null/null']);
 
-        root.go('a.b', {'foo': 'aaa', 'bar': 'bbb'}).then((_) {
+        root.go('a.b', {'foo': 'aaaa', 'bar': 'bbbb'}).then(expectAsync1((_) {
           mockHistory.getLogs(callsTo('pushState', anything))
               .verify(happenedExactly(2));
           expect(mockHistory.getLogs(callsTo('pushState', anything)).last.args,
-              [null, '', '/aaa/bbb']);
-        });
+              [null, '', '/aaaa/bbbb']);
+
+          bRouter.go('b', {'bar': 'bbbb'}).then(expectAsync1((_) {
+            mockHistory.getLogs(callsTo('pushState', anything))
+               .verify(happenedExactly(3));
+            expect(mockHistory.getLogs(callsTo('pushState', anything)).last.args,
+                [null, '', '/aaaa/bbbb']);
+          }));
+
+        }));
+      }));
+
+    });
+
+    test('shold attempt to reverse default routes', () {
+      Map<String, int> counters = <String, int>{
+        'aEnter': 0,
+        'bEnter': 0
+      };
+
+      MockWindow mockWindow = new MockWindow();
+      var bRouter;
+      Router root = new Router(windowImpl: mockWindow)
+        ..addRoute(
+            name: 'a',
+            defaultRoute: true,
+            path: '/:foo',
+            enter: (_) => counters['aEnter']++,
+            mount: (router) =>
+                bRouter = router
+                  ..addRoute(
+                      name: 'b',
+                      defaultRoute: true,
+                      path: '/:bar',
+                      enter: (_) => counters['bEnter']++));
+
+      expect(counters, {
+        'aEnter': 0,
+        'bEnter': 0
       });
 
+      root.route('').then((_) {
+        expect(counters, {
+          'aEnter': 1,
+          'bEnter': 1
+        });
+
+        bRouter.go('b', {'bar': 'bbb'}).then((_) {
+          var mockHistory = mockWindow.history;
+
+          mockHistory.getLogs(callsTo('pushState', anything))
+             .verify(happenedExactly(1));
+          expect(mockHistory.getLogs(callsTo('pushState', anything)).last.args,
+              [null, '', '/null/bbb']);
+        });
+      });
     });
 
   });
