@@ -30,8 +30,8 @@ class CompanyInfoLoaderComponent extends RoutableWebComponent {
     var tokenInt = int.parse(e.parameters['companyId'], onError: (s) => -1);
     if (tokenInt > -1) {
       company = {
-        'id': 100001,
-        'name': 'Nike',
+        'id': tokenInt,
+        'name': 'Company $tokenInt',
         'revenue': 3000000.00
       };
       var info = new CompanyInfoComponent();
@@ -47,6 +47,7 @@ class CompanyInfoLoaderComponent extends RoutableWebComponent {
     currentComponent = comp;
     var lifecycleCaller = new ComponentItem(comp);
     lifecycleCaller.create();
+    host.children.clear();
     host.children.add(comp.host);
     lifecycleCaller.insert();
   }

@@ -2,6 +2,7 @@
 
 <html>
   <head>
+    <link rel="import" href="company-info.html">
   </head>
   <body>
     <element name="x-porfolio" constructor="PortfolioComponent" extends="div">
@@ -20,28 +21,19 @@
             <th>#</th>
             <th>Name</th>
             <th>Revenue</th>
-            <th></th>
           </tr>
           <tbody template iterate='company in companies'>
           <tr>
             <td>{{company['id']}}</td>
             <td><a href on-click="openCompany(company, $event)">{{company['name']}}</a></td>
             <td>{{company['revenue']}}</td>
-            <td>
-              <a href on-click="expandCompany(company, $event)">Expand</a>
-            </td>
-          </tr>
-          <tr>
-            <td colspan="4" template if="isExpanded(company)">
-              <!--x-view view-id="companyInfo" company="{{company}}"></x-view-->
-            </td>
           </tr>
           </tbody>
           </table>
         </template>
         <template iterate="tab in tabs.sublist(1)">
           <template if="activeTab == tab">
-            <!--x-view view-id="companyInfo" company="{{tab['userValue']}}" history-bound="{{true}}"></x-view-->
+            <x-company-info company="{{tab['userValue']}}" ></x-company-info>
           </template>
         </template>
       </template>

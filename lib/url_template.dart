@@ -13,6 +13,10 @@ class UrlTemplate implements UrlMatcher {
   RegExp _pattern;
   List _chunks;
 
+  String toString() {
+    return '$_pattern';
+  }
+  
   UrlTemplate(String template) {
     _compileTemplate(template);
   }

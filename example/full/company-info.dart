@@ -15,6 +15,10 @@ class CompanyInfoComponent extends RoutableWebComponent {
   @observable String activitiesUrl;
   @observable String notesUrl;
 
+  created() {
+    print('CompanyInfoComponent created');
+  }
+  
   void configureRouter(Router router) {
     print('CompanyInfoComponent configure router');
     this.router = router

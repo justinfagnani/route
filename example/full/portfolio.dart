@@ -1,18 +1,17 @@
 library portfolio;
 
-import 'package:web_ui/web_ui.dart';
-import 'package:web_ui/watcher.dart' as watchers;
-import 'dart:html';
 import 'dart:async';
+import 'dart:html';
+import 'package:web_ui/web_ui.dart';
 import 'package:route/client.dart';
+import 'routable-component.dart';
 
-class PortfolioComponent extends WebComponent implements Routable {
-  var expandedCompany;
-  var expanded;
-  var tabs = [{
+class PortfolioComponent extends RoutableWebComponent {
+  var router;
+  @observable var tabs = toObservable([{
     'name': 'Porfolio'
-  }];
-  var activeTab;
+  }]);
+  @observable var activeTab;
   var companies = [
     {
       'id': 100001,
@@ -36,66 +35,66 @@ class PortfolioComponent extends WebComponent implements Routable {
   }
 
   void configureRouter(Router router) {
-
+    this.router = router
+      ..addRoute(
+          name: 'home',
+          path: '/home',
+          defaultRoute: true,
+          enter: (_) => showTab(tabs[0], null))
+      ..addRoute(
+          name: 'company',
+          path: '/:tabId',
+          enter: showCompanyTab);
   }
-
-  inserted() {
-    chopin.onTokenChange(this, (newToken) {
-      if (newToken == null) {
-        newToken = '';
-      }
-      var tokenInt = int.parse(newToken, onError: (s) => -1);
-      if (newToken == '' || newToken == 'home' || tokenInt == -1) {
-        showTab(tabs[0], null, updateUrl: true, replace: true, silent: true);
+  
+  void showCompanyTab(RouteEvent e) {
+    var tokenInt = int.parse(e.parameters['tabId']);
+    print('showCompanyTab ${e.path} $tokenInt');
+    // If it's one of the current tabs, we show that tab
+    for (var tab in tabs) {
+      if (tab['userValue'] != null && tab['userValue']['id'] == tokenInt) {
+        showTab(tab, null);
         return;
       }
-      bool done = false;
-      tabs.forEach((tab) {
-        if (!done && tab['userValue'] != null && tab['userValue']['id'] == tokenInt) {
-          showTab(tab, null, updateUrl: false, silent: true, setToken: false);
-          done = true;
-        }
-      });
-      if (done) return;
-      companies.forEach((c) {
-        if (c['id'] == tokenInt) {
-          openCompany(c, null, setToken: false);
-          done = true;
-        }
-      });
+    }
+    // Otherwise we try to load the company
+    getCompany(tokenInt).then((company) {
+      if (company != null) {
+        _openCompanyTab(company);
+      } else {
+        // TODO: show a message that company id is invalid or something
+      }
     });
   }
-
-  void expandCompany(company, MouseEvent e) {
-    if (expanded == company['id']) {
-      expanded = null;
-    } else {
-      expanded = company['id'];
+  
+  Future getCompany(int id) {
+    for (var c in companies) {
+      if (c['id'] == id) {
+        return new Future.value(c);
+      }
     }
-    e.preventDefault();
-    watchers.dispatch();
+    return new Future.value(null);
   }
 
-  bool isExpanded(company) {
-    return expanded == company['id'];
-  }
-
-  void openCompany(company, MouseEvent e, {setToken: true}) {
+  void openCompany(company, MouseEvent e) {
+    print('openCompany $company');
     if (e != null) {
       e.preventDefault();
     }
+    // set new history token...
+    router.go('company', {
+      'tabId': '${company['id']}'
+    });
+  }
 
+  void _openCompanyTab(company) {
+    print('_openCompanyTab $company');
     tabs.add({
       'name': company['name'],
       'userValue': company
     });
     activeTab = tabs[tabs.length - 1];
-    watchers.dispatch();
-
-    if (setToken) {
-      // set new history token...
-      chopin.setToken(this, "${company['id']}", silent: false);
-    }
+    print('activeTab set to ${activeTab['name']}');
   }
 
   String activeClass(tab) {
@@ -105,16 +104,11 @@ class PortfolioComponent extends WebComponent implements Routable {
     return "";
   }
 
-  showTab(tab, e, {updateUrl: true, replace: false, silent: false, setToken: true}) {
+  showTab(tab, e) {
+    print('showTab $tab');
     if (e != null) {
       e.preventDefault();
     }
     activeTab = tab;
-    watchers.dispatch();
-
-    if (setToken) {
-      var tkn = activeTab['userValue'] != null ? "${activeTab['userValue']['id']}" : "home";
-      chopin.setToken(this, tkn, silent: silent, updateUrl: updateUrl, replace: replace);
-    }
   }
 }
