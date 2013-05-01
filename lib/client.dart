@@ -185,7 +185,8 @@ class Router {
     }
     if (route != null) {
       var match = _getMatch(route, path);
-      if (!identical(route, _currentRoute)) {
+      if (route != _currentRoute || 
+          _currentRoute.lastEvent.path != match.match) {
         return _processNewRoute(path, match, route);
       } else {
         _currentRoute.lastEvent = new RouteEvent(match.match, match.parameters);
@@ -197,7 +198,7 @@ class Router {
     }
     return new Future.value(false);
   }
-
+  
   reroute() {
     if (_lastPath == null) {
       throw new StateError('Cannot reroute, was never routed before.');
@@ -206,8 +207,10 @@ class Router {
   }
 
   Future go(String routePath, Map parameters, {bool replace: false}) {
-    String newUrl = _getHead(_getTailUrl(routePath, parameters));
-    return route(newUrl).then((success) {
+    var newTail = _getTailUrl(routePath, parameters);
+    String newUrl = _getHead(newTail);
+    _logger.finest('go $newUrl');
+    return route(newTail).then((success) {
       if (success) {
         _go(newUrl, null, replace);
       }

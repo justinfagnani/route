@@ -254,30 +254,30 @@ main() {
         });
         root.route('/articles').then((_) {
           expect(counters, {
-            'list_entered': 1, // already current route
+            'list_entered': 2,
             'article_123_entered': 0,
             'article_123_view_entered': 0,
             'article_123_edit_entered': 0
           });
           root.route('/article/123').then((_) {
             expect(counters, {
-              'list_entered': 1,
+              'list_entered': 2,
               'article_123_entered': 1,
               'article_123_view_entered': 1, // default to view
               'article_123_edit_entered': 0
             });
             root.route('/article/123/view').then((_) {
               expect(counters, {
-                'list_entered': 1,
+                'list_entered': 2,
                 'article_123_entered': 1,
-                'article_123_view_entered': 1, // already current route
+                'article_123_view_entered': 2,
                 'article_123_edit_entered': 0
               });
               root.route('/article/123/edit').then((_) {
                 expect(counters, {
-                  'list_entered': 1,
+                  'list_entered': 2,
                   'article_123_entered': 1,
-                  'article_123_view_entered': 1,
+                  'article_123_view_entered': 2,
                   'article_123_edit_entered': 1
                 });
               });
