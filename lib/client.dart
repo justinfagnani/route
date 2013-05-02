@@ -68,7 +68,6 @@ class Router {
   final Router _parent;
   _Route _defaultRoute;
   _Route _currentRoute;
-  String _lastPath;
 
   Stream<RouteEvent> get onRoute => _onRouteController.stream;
   Stream<RouteEvent> get onLeave => _onLeaveController.stream;
@@ -128,34 +127,6 @@ class Router {
     _routes[name] = route;
   }
 
-  Future removeRoute(String name) {
-    var route = _routes[name];
-    if (route == null) {
-      throw new ArgumentError('Route $name does not exist.');
-    }
-    if (identical(route, _currentRoute)) {
-      return _leaveCurrentRoute(_currentRoute.lastEvent).then((allowed) {
-        if (allowed) {
-          _actuallyRemoveRoute(name);
-        }
-        return allowed;
-      });
-    } else {
-      _actuallyRemoveRoute(name);
-      return new Future.value(true);
-    }
-  }
-
-  _actuallyRemoveRoute(String name) {
-    var route = _routes.remove(name);
-    if (identical(route, _currentRoute)) {
-      _currentRoute = null;
-    }
-    if (identical(route, _defaultRoute)) {
-      _defaultRoute = null;
-    }
-  }
-
   /**
    * Finds a matching [UrlPattern] added with [addHandler], parses the path
    * and invokes the associated callback.
@@ -169,7 +140,6 @@ class Router {
    */
   Future<bool> route(String path) {
     _logger.finest('route $path');
-    _lastPath = path;
     _Route route;
     List matchingRoutes = _routes.values.where(
         (r) => r.path.match(path) != null).toList();
@@ -199,13 +169,6 @@ class Router {
     return new Future.value(false);
   }
   
-  reroute() {
-    if (_lastPath == null) {
-      throw new StateError('Cannot reroute, was never routed before.');
-    }
-    route(_lastPath);
-  }
-
   Future go(String routePath, Map parameters, {bool replace: false}) {
     var newTail = _getTailUrl(routePath, parameters);
     String newUrl = _getHead(newTail);
