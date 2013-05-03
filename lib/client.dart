@@ -180,6 +180,7 @@ class Router {
   final bool _useFragment;
   final Window _window;
   final Route root;
+  bool _listen = false;
 
   /**
    * [useFragment] determines whether this Router uses pure paths with
@@ -329,6 +330,10 @@ class Router {
    * browsers the hashChange event is used instead.
    */
   void listen({bool ignoreClick: false}) {
+    if (_listen) {
+      throw new StateError('listen can only be called once');
+    }
+    _listen = true;
     if (_useFragment) {
       _window.onHashChange.listen((_) {
         return route(_normalizeHash(_window.location.hash));
@@ -343,10 +348,16 @@ class Router {
           AnchorElement anchor = e.target;
           if (anchor.host == _window.location.host) {
             e.preventDefault();
-            var fragment = (anchor.hash == '') ? '' : '${anchor.hash}';
-            route('${anchor.pathname}$fragment').then((allowed) {
+            var hash = (anchor.hash == '') ? '' : anchor.hash;
+            var path;
+            if (_useFragment) {
+              path = hash.substring(1);
+            } else {
+              path = '${anchor.pathname}$hash';
+            }
+            route(path).then((allowed) {
               if (allowed) {
-                _go("${anchor.pathname}$fragment", null, false);
+                _go(path, null, false);
               }
             });
           }

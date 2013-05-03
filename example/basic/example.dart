@@ -1,19 +1,27 @@
 library example;
 
 import 'dart:html';
-import 'package:route/client.dart';
 
-final one = new UrlPattern('/one');
-final two = new UrlPattern('/two');
+import 'package:logging/logging.dart';
+import 'package:route/client.dart';
+import 'package:route/url_pattern.dart';
 
 main() {
-  query('#warning').remove();
-  query('#one').classes.add('selected');
+  new Logger('')
+    ..level = Level.FINEST
+    ..onRecord.listen((r) => print('[${r.level}] ${r.message}'));
 
-  var router = new Router(useFragment: true)
-    ..addRoute(name: 'one', path: one, enter: showOne)
-    ..addRoute(name: 'two', path: two, enter: showTwo)
-    ..listen();
+  query('#warning').remove();
+
+  var router = new Router(useFragment: true);
+  router.root
+    ..addRoute(name: 'one', defaultRoute: true, path: '/one', enter: showOne)
+    ..addRoute(name: 'two', path: '/two', enter: showTwo);
+
+  query('#linkOne').attributes['href'] = router.url('one');
+  query('#linkTwo').attributes['href'] = router.url('two');
+
+  router.listen();
 }
 
 void showOne(RouteEvent e) {
