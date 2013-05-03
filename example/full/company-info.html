@@ -18,11 +18,9 @@
           </li>
         </ul>
         <template if="section == 'info'">
-          <template if="company != null">
-            <h2>{{company['name']}}: Info</h2>
-            <p>id: {{company['id']}}</p>
-            <p>revenue: {{company['revenue']}}</p>
-          </template>
+          <h2>{{company['name']}}: Info</h2>
+          <p>id: {{company['id']}}</p>
+          <p>revenue: {{company['revenue']}}</p>
         </template>
         <template if="section == 'activities'">
           <h2>{{company['name']}}: Activities</h2>

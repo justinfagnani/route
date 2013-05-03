@@ -1,50 +1,39 @@
 library companyinfo;
 
-import 'package:web_ui/web_ui.dart';
-import 'routable-component.dart';
 import 'dart:html';
-import 'package:web_ui/watcher.dart' as watchers;
+
+import 'package:web_ui/web_ui.dart';
 import 'package:route/client.dart';
 
-class CompanyInfoComponent extends RoutableWebComponent {
+import 'index.dart';
+import 'stream-cleaner.dart';
 
+
+class CompanyInfoComponent extends WebComponent {
   var company;
-  Router router;
+  Route route;
   @observable String section;
   @observable String infoUrl;
   @observable String activitiesUrl;
   @observable String notesUrl;
 
-  created() {
-    print('CompanyInfoComponent created');
-  }
-  
-  void configureRouter(Router router) {
-    print('CompanyInfoComponent configure router');
-    this.router = router
-      ..addRoute(
-          name: 'info',
-          defaultRoute: true,
-          path: '/info',
-          enter: (_) => showSection('info'))
-      ..addRoute(
-          name: 'activities',
-          path: '/activities',
-          enter: (_) => showSection('activities'))
-      ..addRoute(
-          name: 'notes',
-          path: '/notes',
-          enter: (_) => showSection('notes'));
+  StreamCleaner cleaner = new StreamCleaner();
 
-    router.onRoute.listen((_) {
-      infoUrl = router.url('info');
-      activitiesUrl = router.url('activities');
-      notesUrl = router.url('notes');
-    });
+  inserted() {
+    cleaner.add(route.getRoute('info').onRoute.listen((_) => showSection('info')));
+    cleaner.add(route.getRoute('activities').onRoute.listen((_) => showSection('activities')));
+    cleaner.add(route.getRoute('notes').onRoute.listen((_) => showSection('notes')));
+
+    infoUrl = router.url('info', startingFrom: route);
+    activitiesUrl = router.url('activities', startingFrom: route);
+    notesUrl = router.url('notes', startingFrom: route);
+  }
+
+  removed() {
+    cleaner.cancelAll();
   }
 
   showSection(section) {
-    print('show section $section');
     this.section = section;
   }
 
@@ -52,7 +41,7 @@ class CompanyInfoComponent extends RoutableWebComponent {
     if (e != null) {
       e.preventDefault();
     }
-    router.go(section, {}).then((allowed) {
+    router.go(section, {}, startingFrom: route).then((allowed) {
       if (allowed) {
         showSection(section);
         watchers.dispatch();

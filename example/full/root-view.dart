@@ -7,58 +7,46 @@ import 'home.dart';
 import 'company-info-loader.dart';
 import 'portfolio.dart';
 
-class RootView extends WebComponent implements Routable {
-
+class RootView extends WebComponent {
+  Route route;
   WebComponent currentComponent;
 
-  WebComponent home;
-  WebComponent companyInfo;
-  WebComponent porfolio;
-
-  RootView() {
-    home = new HomeComponent();
-    home.host = new DivElement();
-
-    companyInfo = new CompanyInfoLoaderComponent();
-    companyInfo.host = new DivElement();
-
-    porfolio = new PortfolioComponent();
-    porfolio.host = new DivElement();
+  inserted() {
+    var homeRoute = route.getRoute('home')
+      ..onRoute.listen((_) {
+          var home = new HomeComponent();
+          createAndInsertComponent(home);
+        })
+      ..onLeave.listen(cleanup);
+    var companyInfoRoute = route.getRoute('companyInfo');
+    companyInfoRoute
+      ..onRoute.listen((_) {
+        var comp = new CompanyInfoLoaderComponent();
+        comp.route = companyInfoRoute;
+        createAndInsertComponent(comp);
+      })
+      ..onLeave.listen(cleanup);
+    var portfolioRoute = route.getRoute('portfolio');
+    portfolioRoute
+      ..onRoute.listen((_) {
+        var comp = new PortfolioComponent();
+        comp.route = portfolioRoute;
+        createAndInsertComponent(comp);
+      })
+      ..onLeave.listen(cleanup);
   }
 
-  created() {
-    var router = new Router(useFragment: true)
-      ..addRoute(name: 'root', path: '', mount: this);
-    router.listen();
-  }
-
-  void configureRouter(Router router) {
-    router
-      ..addRoute(
-          name: 'home',
-          defaultRoute: true,
-          path: '/home',
-          enter: (_) => createAndInsertComponent(home),
-          mount: home)
-      ..addRoute(
-          name: 'companyInfo',
-          path: '/companyInfo',
-          enter: (_) => createAndInsertComponent(companyInfo),
-          mount: companyInfo)
-      ..addRoute(
-          name: 'portfolio',
-          path: '/portfolio',
-          enter: (_) => createAndInsertComponent(porfolio),
-          mount: porfolio);
-  }
-
-  createAndInsertComponent(WebComponent comp) {
-    print('do it.... $comp');
+  void cleanup(_) {
     if (currentComponent != null) {
       var lifecycleCaller = new ComponentItem(currentComponent);
       currentComponent.host.remove();
       lifecycleCaller.remove();
+      currentComponent = null;
     }
+  }
+
+  createAndInsertComponent(WebComponent comp) {
+    comp.host = new DivElement();
     currentComponent = comp;
     var lifecycleCaller = new ComponentItem(comp);
     lifecycleCaller.create();

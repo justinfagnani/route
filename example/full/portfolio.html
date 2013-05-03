@@ -10,7 +10,7 @@
         <ul class="nav nav-tabs">
           <template iterate='tab in tabs'>
             <li class='{{activeClass(tab)}}'>
-              <a href on-click="showTab(tab, $event)">{{tab['name']}}</a>
+              <a href on-click="navigateToTab(tab, $event)">{{tab['name']}}</a>
             </li>
           </template>
         </ul>
@@ -33,7 +33,7 @@
         </template>
         <template iterate="tab in tabs.sublist(1)">
           <template if="activeTab == tab">
-            <x-company-info company="{{tab['userValue']}}" ></x-company-info>
+            <x-company-info company="{{tab['userValue']}}" route="{{companyRoute}}"></x-company-info>
           </template>
         </template>
       </template>
