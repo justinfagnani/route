@@ -7,6 +7,9 @@
   <body>
     <element name="x-company-info-loader" constructor="CompanyInfoLoaderComponent" extends="div">
       <template>
+        <template if="company == null">
+          Loading...
+        </template>
         <template if="company != null">
           <x-company-info company="{{company}}" route="{{companyRoute}}"></x-company-info>
         </template>

@@ -14,22 +14,30 @@
             </li>
           </template>
         </ul>
+        <template if="activeTab == null">
+          Loading...
+        </template>
         <template if="activeTab == tabs[0]">
           <h1>Portfolio</h1>
-          <table class="table">
-          <tr>
-            <th>#</th>
-            <th>Name</th>
-            <th>Revenue</th>
-          </tr>
-          <tbody template iterate='company in companies'>
-          <tr>
-            <td>{{company['id']}}</td>
-            <td><a href on-click="openCompany(company, $event)">{{company['name']}}</a></td>
-            <td>{{company['revenue']}}</td>
-          </tr>
-          </tbody>
-          </table>
+          <template if="companies == null">
+            Loading...
+          </template>
+          <template if="companies != null">
+            <table class="table">
+            <tr>
+              <th>#</th>
+              <th>Name</th>
+              <th>Revenue</th>
+            </tr>
+            <tbody template iterate='company in companies'>
+            <tr>
+              <td>{{company['id']}}</td>
+              <td><a href on-click="openCompany(company, $event)">{{company['name']}}</a></td>
+              <td>{{company['revenue']}}</td>
+            </tr>
+            </tbody>
+            </table>
+          </template>
         </template>
         <template iterate="tab in tabs.sublist(1)">
           <template if="activeTab == tab">

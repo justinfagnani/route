@@ -25,15 +25,15 @@ var _companies = [
 
 /// simulate an RPC call to fetch companies from a JSON source
 Future<List<Map>> fetchCompanies() {
-  return new Future.value(_companies);
+  return new Future.delayed(new Duration(seconds: 1), () => _companies);
 }
 
 /// simulate an RPC call to fetch a company from a JSON source
 Future<Map> fetchCompany(int id) {
   for (var c in _companies) {
     if (c['id'] == id) {
-      return new Future.value(c);
+      return new Future.delayed(new Duration(seconds: 1), () => c);
     }
   }
-  return new Future.value(null);
+  return new Future.delayed(new Duration(seconds: 1), () => null);
 }
