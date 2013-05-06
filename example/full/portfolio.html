@@ -7,6 +7,7 @@
   <body>
     <element name="x-porfolio" constructor="PortfolioComponent" extends="div">
       <template>
+        <!-- Tabs header -->
         <ul class="nav nav-tabs">
           <template iterate='tab in tabs'>
             <li class='{{activeClass(tab)}}'>
@@ -17,6 +18,7 @@
         <template if="activeTab == null">
           Loading...
         </template>
+        <!-- portfolio home tab -->
         <template if="activeTab == tabs[0]">
           <h1>Portfolio</h1>
           <template if="companies == null">
@@ -39,6 +41,7 @@
             </table>
           </template>
         </template>
+        <!-- Draw company tab -->
         <template iterate="tab in tabs.sublist(1)">
           <template if="activeTab == tab">
             <template if="tab['userValue'] == null">

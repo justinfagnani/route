@@ -18,7 +18,6 @@ class CompanyInfoLoaderComponent extends WebComponent {
   inserted() {
     companyRoute = route.getRoute('companyId');
     cleaner.add(companyRoute.onRoute.listen(_showCompanyInfo));
-    cleaner.add(companyRoute.onLeave.listen(_hideCompanyInfo));
   }
 
   removed() {
@@ -38,9 +37,5 @@ class CompanyInfoLoaderComponent extends WebComponent {
       // TODO: navigate to invalid company route...
       window.alert('Invalid company id $tokenInt');
     }
-  }
-
-  _hideCompanyInfo(RouteEvent e) {
-    company = null;
   }
 }

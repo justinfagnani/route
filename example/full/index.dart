@@ -2,11 +2,14 @@ import 'package:logging/logging.dart';
 import 'package:route/client.dart';
 
 Router router;
+String homeLink;
+String portfolioLink;
 
 void main() {
   new Logger('')
       ..level = Level.FINEST
-      ..onRecord.listen((r) => print('[${r.level}] ${r.message}'));
+      ..onRecord.listen((r) =>
+          print('${new DateTime.now()}: [${r.level}] ${r.message}'));
 
   router = new Router(useFragment: true);
   router.root
@@ -38,7 +41,10 @@ void main() {
               name: 'company',
               path: '/:tabId',
               mount: new _CompanyInfoRoutable()));
-    router.listen();
+  router.listen();
+
+  homeLink = router.url('home');
+  portfolioLink = router.url('portfolio');
 }
 
 class _CompanyInfoRoutable implements Routable {

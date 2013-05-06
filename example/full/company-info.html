@@ -24,11 +24,20 @@
         </template>
         <template if="section == 'activities'">
           <h2>{{company['name']}}: Activities</h2>
-          <p>....</p>
+          <ul>
+            <li>a</li>
+            <li>b</li>
+            <li>c</li>
+            <li>d</li>
+            <li>e</li>
+            <li>f</li>
+            <li>g</li>
+          </ul>
         </template>
         <template if="section == 'notes'">
           <h2>{{company['name']}}: Notes</h2>
-          <p>....</p>
+          <textarea></textarea><br/>
+          <button class="btn btn-primary">Add Note</button>
         </template>
         <script type="application/dart" src="company-info.dart"></script>
       </template>
