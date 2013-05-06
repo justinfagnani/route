@@ -62,9 +62,15 @@ class PortfolioComponent extends WebComponent {
     }
 
     // Otherwise we try to load the company
+    var newTab = toObservable({
+      'name': 'Loading...',
+    });
+    tabs.add(newTab);
+    activeTab = tabs[tabs.length - 1];
     data.fetchCompany(tokenInt).then((company) {
       if (company != null) {
-        _openCompanyTab(company);
+        newTab['name'] = company['name'];
+        newTab['userValue'] = company;
       } else {
         // TODO: show a message that company id is invalid or something
       }
@@ -79,14 +85,6 @@ class PortfolioComponent extends WebComponent {
     router.go('company', {
       'tabId': '${company['id']}'
     }, startingFrom: route);
-  }
-
-  void _openCompanyTab(company) {
-    tabs.add({
-      'name': company['name'],
-      'userValue': company
-    });
-    activeTab = tabs[tabs.length - 1];
   }
 
   String activeClass(tab) {

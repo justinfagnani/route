@@ -41,7 +41,12 @@
         </template>
         <template iterate="tab in tabs.sublist(1)">
           <template if="activeTab == tab">
-            <x-company-info company="{{tab['userValue']}}" route="{{companyRoute}}"></x-company-info>
+            <template if="tab['userValue'] == null">
+              Loading...
+            </template>
+            <template if="tab['userValue'] != null">
+              <x-company-info company="{{tab['userValue']}}" route="{{companyRoute}}"></x-company-info>
+            </template>
           </template>
         </template>
       </template>
