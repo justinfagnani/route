@@ -5,12 +5,16 @@ import 'package:web_ui/web_ui.dart';
 import 'package:route/client.dart';
 
 class RootView extends WebComponent {
-  Route route;
+  RouteHandle route;
   @observable String currentRouteName;
 
   inserted() {
     ['home', 'companyInfo', 'portfolio'].forEach((routeName) =>
         route.getRoute(routeName)
            .onRoute.listen((_) => currentRouteName = routeName));
+  }
+
+  removed() {
+    route.discart();
   }
 }

@@ -6,22 +6,20 @@ import 'package:web_ui/web_ui.dart';
 import 'package:route/client.dart';
 
 import 'data.dart' as data;
-import 'stream-cleaner.dart';
 
 
 class CompanyInfoLoaderComponent extends WebComponent {
-  Route route;
+  RouteHandle route;
   @observable var company;
   @observable Route companyRoute;
-  StreamCleaner cleaner = new StreamCleaner();
 
   inserted() {
     companyRoute = route.getRoute('companyId');
-    cleaner.add(companyRoute.onRoute.listen(_showCompanyInfo));
+    companyRoute.onRoute.listen(_showCompanyInfo);
   }
 
   removed() {
-    cleaner.cancelAll();
+    route.discart();
   }
 
   _showCompanyInfo(RouteEvent e) {

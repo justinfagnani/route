@@ -11,7 +11,7 @@
         <ul class="nav nav-tabs">
           <template iterate='tab in tabs'>
             <li class='{{activeClass(tab)}}'>
-              <a href on-click="navigateToTab(tab, $event)">{{tab['name']}}</a>
+              <a href="{{tab['link']}}">{{tab['name']}}</a>
             </li>
           </template>
         </ul>
@@ -34,7 +34,7 @@
             <tbody template iterate='company in companies'>
             <tr>
               <td>{{company['id']}}</td>
-              <td><a href on-click="openCompany(company, $event)">{{company['name']}}</a></td>
+              <td><a href="{{companyLink(company)}}">{{company['name']}}</a></td>
               <td>{{company['revenue']}}</td>
             </tr>
             </tbody>
@@ -48,7 +48,7 @@
               Loading...
             </template>
             <template if="tab['userValue'] != null">
-              <x-company-info company="{{tab['userValue']}}" route="{{companyRoute}}"></x-company-info>
+              <x-company-info company="{{tab['userValue']}}" route="{{companyRoute.newHandle()}}"></x-company-info>
             </template>
           </template>
         </template>

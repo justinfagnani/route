@@ -34,8 +34,8 @@ void main() {
         path: '/portfolio',
         mount: (Route child) => child
           ..addRoute(
-              name: 'home',
-              path: '/home',
+              name: 'list',
+              path: '/list',
               defaultRoute: true)
           ..addRoute(
               name: 'company',

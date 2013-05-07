@@ -7,52 +7,41 @@ import 'package:route/client.dart';
 
 import 'index.dart';
 import 'data.dart' as data;
-import 'stream-cleaner.dart';
+
 
 class PortfolioComponent extends WebComponent {
-  Route route;
-  Route companyRoute;
-  @observable var tabs = toObservable([{
-    'name': 'Portfolio'
-  }]);
+  RouteHandle route;
+  RouteHandle companyRoute;
+  @observable var tabs = toObservable([]);
   @observable var activeTab;
   @observable var companies;
-
-  StreamCleaner cleaner = new StreamCleaner();
 
   created() {
     data.fetchCompanies().then((result) => companies = result);
   }
 
   inserted() {
+    tabs.add({
+      'name': 'Portfolio',
+      'link': router.url('list', startingFrom: route)
+    });
+
     companyRoute = route.getRoute('company');
-    cleaner.add(route.getRoute('home').onRoute.listen((RouteEvent e) {
+    route.getRoute('list').onRoute.listen((RouteEvent e) {
       activeTab = tabs[0];
-      if (e.path != '/home') {
-        navigateToTab(tabs[0], null, replace: true);
+      if (e.path != '/list') {
+        router.go('list', {}, startingFrom: route, replace: true);
       }
-    }));
-    cleaner.add(companyRoute.onRoute.listen(showCompanyTab));
+    });
+    companyRoute.onRoute.listen(showCompanyTab);
   }
 
   removed() {
-    cleaner.cancelAll();
-  }
-
-  navigateToTab(tab, e, {replace: false}) {
-    if (e != null) {
-      e.preventDefault();
-    }
-    if (tab['name'] == 'Portfolio') {
-      router.go('home', {}, startingFrom: route, replace: replace);
-    } else {
-      router.go('company', {'tabId': tab['userValue']['id']}, startingFrom: route);
-    }
+    route.discart();
   }
 
   void showCompanyTab(RouteEvent e) {
     var tokenInt = int.parse(e.parameters['tabId']);
-
     // If it's one of the current tabs, we show that tab
     for (var tab in tabs) {
       if (tab['userValue'] != null && tab['userValue']['id'] == tokenInt) {
@@ -71,6 +60,7 @@ class PortfolioComponent extends WebComponent {
       if (company != null) {
         newTab['name'] = company['name'];
         newTab['userValue'] = company;
+        newTab['link'] = companyLink(company);
       } else {
         // TODO: show a message that company id is invalid or something
       }
@@ -85,6 +75,11 @@ class PortfolioComponent extends WebComponent {
     router.go('company', {
       'tabId': '${company['id']}'
     }, startingFrom: route);
+  }
+
+  String companyLink(company) {
+    return router.url('company',
+        parameters: {'tabId': '${company['id']}'}, startingFrom: route);
   }
 
   String activeClass(tab) {

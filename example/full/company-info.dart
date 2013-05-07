@@ -7,27 +7,23 @@ import 'package:route/client.dart';
 import 'package:web_ui/web_ui.dart';
 
 import 'index.dart';
-import 'stream-cleaner.dart';
 
 
 class CompanyInfoComponent extends WebComponent {
   var company;
-  Route route;
+  RouteHandle route;
   @observable String section;
   @observable String infoUrl;
   @observable String activitiesUrl;
   @observable String notesUrl;
 
-  StreamCleaner cleaner = new StreamCleaner();
-
   inserted() {
-    cleaner.add(route.getRoute('info').onRoute.listen((_) =>
-        showSection('info')));
-    cleaner.add(route.getRoute('activities').onRoute.listen((_) =>
-        showSection('activities')));
-    cleaner.add(route.getRoute('notes').onRoute.listen((_) =>
-        showSection('notes')));
-    cleaner.add(route.getRoute('notes').onLeave.listen(notesLeave));
+    route.getRoute('info').onRoute.listen((_) => showSection('info'));
+    route.getRoute('activities')
+        .onRoute.listen((_) => showSection('activities'));
+    route.getRoute('notes')
+      ..onRoute.listen((_) => showSection('notes'))
+      ..onLeave.listen(notesLeave);
 
     infoUrl = router.url('info', startingFrom: route);
     activitiesUrl = router.url('activities', startingFrom: route);
@@ -35,7 +31,7 @@ class CompanyInfoComponent extends WebComponent {
   }
 
   removed() {
-    cleaner.cancelAll();
+    route.discart();
   }
 
   notesLeave(RouteEvent e) {
