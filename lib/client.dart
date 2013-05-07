@@ -5,6 +5,7 @@
 library route.client;
 
 import 'dart:async';
+import 'dart:collection';
 import 'dart:html';
 
 import 'package:logging/logging.dart';
@@ -19,12 +20,99 @@ final _logger = new Logger('route');
 typedef RouteEventHandler(RouteEvent path);
 
 /**
+ * A helper Router handle that scopes all route event subsriptions to it's
+ * instance and provides an convinience [discart] method.
+ */
+class RouteHandle implements Route {
+  Route _route;
+  final StreamController<RouteEvent> _onRouteController;
+  final StreamController<RouteEvent> _onLeaveController;
+  Stream<RouteEvent> _onRoute;
+  Stream<RouteEvent> _onLeave;
+  Stream<RouteEvent> get onRoute => _onRoute;
+  Stream<RouteEvent> get onLeave => _onLeave;
+  StreamSubscription _onRouteSubscription;
+  StreamSubscription _onLeaveSubscription;
+  List<RouteHandle> _childHandles = <RouteHandle>[];
+
+  RouteHandle._new(Route this._route)
+      : _onRouteController = new StreamController<RouteEvent>(),
+        _onLeaveController = new StreamController<RouteEvent>() {
+    _onRoute = _onRouteController.stream.asBroadcastStream();
+    _onLeave = _onLeaveController.stream.asBroadcastStream();
+
+    _onRouteSubscription = _route.onRoute.listen(_onRouteController.add);
+    _onLeaveSubscription = _route.onLeave.listen(_onLeaveController.add);
+  }
+
+  /// Discarts this handle.
+  void discart() {
+    _logger.finest('discarting handle for $_route');
+    _onRouteSubscription.cancel();
+    _onLeaveSubscription.cancel();
+    _onRouteController.close();
+    _onLeaveController.close();
+    _childHandles.forEach((c) => c.discart());
+    _childHandles.clear();
+    _onRoute = null;
+    _onLeave = null;
+    _route = null;
+  }
+
+  /// Not supported. Overridden to throw an error.
+  void addRoute({String name, Pattern path, bool defaultRoute: false,
+      RouteEventHandler enter, RouteEventHandler leave, mount}) =>
+          throw new UnsupportedError('addRoute is not supported in handle');
+
+  /// See [Route.getRoute]
+  Route getRoute(String routePath) {
+    Route r = _assertState(() => _getHost(_route).getRoute(routePath));
+    var handle = r.newHandle();
+    if (handle != null) {
+      _childHandles.add(handle);
+    }
+    return handle;
+  }
+
+  /**
+   * Create an return a new [RouteHandle] for this route.
+   */
+  RouteHandle newHandle() {
+    _logger.finest('newHandle for $this');
+    return new RouteHandle._new(_getHost(_route));
+  }
+
+  Route _getHost(Route r) {
+    _assertState();
+    if (r == null) {
+      throw new StateError('Oops?!');
+    }
+    if ((r is Route) && !(r is RouteHandle)) {
+      return r;
+    }
+    RouteHandle rh = r;
+    return rh._getHost(rh._route);
+  }
+
+  /// See [Route.reverse]
+  String reverse(String tail) =>
+      _assertState(() => _getHost(_route).reverse(tail));
+
+  _assertState([f()]) {
+    if (_route == null) {
+      throw new StateError('This route handle is already discated.');
+    }
+    if (f != null)  return f();
+  }
+}
+
+/**
  * Route is a node in the tree of routes. The edge leading to the route is
  * defined by path.
  */
 class Route {
   final String name;
-  final Map<String, Route> _routes = new Map<String, Route>();
+  final Map<String, Route> _routes = new LinkedHashMap<String, Route>();
   final UrlMatcher path;
   final StreamController<RouteEvent> _onRouteController;
   final StreamController<RouteEvent> _onLeaveController;
@@ -150,6 +238,14 @@ class Route {
   String reverse(String tail) {
     return path.reverse(parameters: _lastEvent.parameters, tail: tail);
   }
+
+  /**
+   * Create an return a new [RouteHandle] for this route.
+   */
+  RouteHandle newHandle() {
+    _logger.finest('newHandle for $this');
+    return new RouteHandle._new(this);
+  }
 }
 
 /**
@@ -217,7 +313,7 @@ class Router {
    * with the path version of the URL by converting the # to a /.
    */
   Future<bool> route(String path, {Route startingFrom}) {
-    var baseRoute = startingFrom == null ? this.root : startingFrom;
+    var baseRoute = startingFrom == null ? this.root : _dehandle(startingFrom);
     _logger.finest('route $path $baseRoute');
     Route matchedRoute;
     List matchingRoutes = baseRoute._routes.values.where(
@@ -250,7 +346,7 @@ class Router {
   /// Navigates to a given relative route path, and parameters.
   Future go(String routePath, Map parameters,
             {Route startingFrom, bool replace: false}) {
-    var baseRoute = startingFrom == null ? this.root : startingFrom;
+    var baseRoute = startingFrom == null ? this.root : _dehandle(startingFrom);
     var newTail = baseRoute._getTailUrl(routePath, parameters);
     String newUrl = baseRoute._getHead(newTail);
     _logger.finest('go $newUrl');
@@ -264,10 +360,17 @@ class Router {
 
   /// Returns an absolute URL for a given relative route path and parameters.
   String url(String routePath, {Route startingFrom, Map parameters}) {
-    var baseRoute = startingFrom == null ? this.root : startingFrom;
+    var baseRoute = startingFrom == null ? this.root : _dehandle(startingFrom);
     parameters = parameters == null ? {} : parameters;
     return (_useFragment ? '#' : '') +
         baseRoute._getHead(baseRoute._getTailUrl(routePath, parameters));
+  }
+
+  Route _dehandle(Route r) {
+    if (r is RouteHandle) {
+      return r._getHost(r);
+    }
+    return r;
   }
 
   UrlMatch _getMatch(Route route, String path) {
