@@ -21,6 +21,10 @@
         <!-- portfolio home tab -->
         <template if="activeTab == tabs[0]">
           <h1>Portfolio</h1>
+          <div class="form-search">
+            <input type="text" class="input-medium search-query" bind-value="searchQuery">
+            <button class="btn" on-click="search()">Search</button>
+          </div><br/>
           <template if="companies == null">
             Loading...
           </template>

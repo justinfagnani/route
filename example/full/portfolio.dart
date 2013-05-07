@@ -15,10 +15,7 @@ class PortfolioComponent extends WebComponent {
   @observable var tabs = toObservable([]);
   @observable var activeTab;
   @observable var companies;
-
-  created() {
-    data.fetchCompanies().then((result) => companies = result);
-  }
+  @observable String searchQuery;
 
   inserted() {
     tabs.add({
@@ -26,13 +23,18 @@ class PortfolioComponent extends WebComponent {
       'link': router.url('list', startingFrom: route)
     });
 
-    companyRoute = route.getRoute('company');
     route.getRoute('list').onRoute.listen((RouteEvent e) {
+      searchQuery =
+          e.parameters.containsKey('query') ? e.parameters['query'] : '';
       activeTab = tabs[0];
       if (e.path != '/list') {
         router.go('list', {}, startingFrom: route, replace: true);
+      } else {
+        companies = null;
+        data.fetchCompanies(searchQuery).then((result) => companies = result);
       }
     });
+    companyRoute = route.getRoute('company');
     companyRoute.onRoute.listen(showCompanyTab);
   }
 
@@ -87,5 +89,9 @@ class PortfolioComponent extends WebComponent {
       return "active";
     }
     return "";
+  }
+
+  void search() {
+    router.go('list', {'list.query': searchQuery}, startingFrom: route);
   }
 }
