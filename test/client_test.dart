@@ -11,21 +11,6 @@ import 'mocks.dart';
 main() {
 
   test('paths are routed to routes added with addRoute', () {
-    var router = new Router();
-    var testPath = '/foo';
-
-    router.root.addRoute(
-      name: 'foo',
-      path: '/foo',
-      enter: (RouteEvent e) {
-        print('enter');
-        expect(true, true);
-      });
-
-    router.route(testPath);
-  });
-
-  test('addRoute', () {
     Router router = new Router();
     router.root.addRoute(
         name: 'foo',
@@ -100,14 +85,14 @@ main() {
             enter: (RouteEvent e) => counters['fooEnter']++,
             leave: (RouteEvent e) => counters['fooLeave']++,
             mount: (Route route) => route
-                ..addRoute(path: '/bar',
-                    name: 'bar',
-                    enter: (RouteEvent e) => counters['barEnter']++,
-                    leave: (RouteEvent e) => counters['barLeave']++)
-                ..addRoute(path: '/baz',
-                    name: 'baz',
-                    enter: (RouteEvent e) => counters['bazEnter']++,
-                    leave: (RouteEvent e) => counters['bazLeave']++));
+              ..addRoute(path: '/bar',
+                  name: 'bar',
+                  enter: (RouteEvent e) => counters['barEnter']++,
+                  leave: (RouteEvent e) => counters['barLeave']++)
+              ..addRoute(path: '/baz',
+                  name: 'baz',
+                  enter: (RouteEvent e) => counters['bazEnter']++,
+                  leave: (RouteEvent e) => counters['bazLeave']++));
 
       expect(counters, {
         'fooEnter': 0,
@@ -471,6 +456,10 @@ main() {
               startingFrom: routeA), '/foo/bbb');
           expect(router.url('b', parameters: {'foo': 'aaa', 'bar': 'bbb'},
               startingFrom: routeA), '/foo/bbb');
+
+          expect(router.url('b', parameters: {'bar': 'bbb', 'b.param1': 'val1'},
+              startingFrom: routeA), '/foo/bbb?b.param1=val1');
+
         });
       });
     });
@@ -488,22 +477,22 @@ main() {
             name: 'foo',
             path: '/:foo',
             mount: (child) => routeFoo = child
-            ..addRoute(
-                name: 'bar',
-                path: '/:bar',
-                mount: (child) => routeBar = child
-                ..addRoute(
-                    name: 'baz',
-                    path: '/:baz',
-                    mount: (child) => routeBaz = child))
-            ..addRoute(
-                name: 'qux',
-                path: '/:qux',
-                mount: (child) => routeQux = child
-                ..addRoute(
-                    name: 'aux',
-                    path: '/:aux',
-                    mount: (child) => routeAux = child)));
+              ..addRoute(
+                  name: 'bar',
+                  path: '/:bar',
+                  mount: (child) => routeBar = child
+                    ..addRoute(
+                        name: 'baz',
+                        path: '/:baz',
+                        mount: (child) => routeBaz = child))
+              ..addRoute(
+                  name: 'qux',
+                  path: '/:qux',
+                  mount: (child) => routeQux = child
+                    ..addRoute(
+                        name: 'aux',
+                        path: '/:aux',
+                        mount: (child) => routeAux = child)));
 
       expect(router.root.getRoute('foo'), same(routeFoo));
       expect(router.root.getRoute('foo.bar'), same(routeBar));
@@ -516,6 +505,28 @@ main() {
 
       expect(router.root.getRoute('baz'), isNull);
       expect(router.root.getRoute('foo.baz'), isNull);
+    });
+
+  });
+
+  group('route', () {
+
+    test('should parse query', () {
+      Router router = new Router();
+      router.root
+        ..addRoute(
+            name: 'foo',
+            path: '/:foo',
+            enter: expectAsync1((RouteEvent e) {
+              expect(e.parameters, {
+                'foo': '123',
+                'a': 'b',
+                'b': '',
+                'c': 'foo bar'
+              });
+            }));
+
+      router.route('/123?foo.a=b&foo.b=&foo.c=foo%20bar&foo.=ignore');
     });
 
   });

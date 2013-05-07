@@ -16,7 +16,7 @@ class UrlTemplate implements UrlMatcher {
   String toString() {
     return '$_pattern';
   }
-  
+
   UrlTemplate(String template) {
     _compileTemplate(template);
   }
@@ -36,7 +36,7 @@ class UrlTemplate implements UrlMatcher {
       _chunks.add(txt);
       _chunks.add((Map params) => params != null ? params[paramName] : null);
        sb.write(txt);
-      sb.write(r'([^/]+)');
+      sb.write(r'([^/?]+)');
       start = m.end;
     });
     if (start != template.length) {
@@ -63,4 +63,8 @@ class UrlTemplate implements UrlMatcher {
 
   String reverse({Map parameters, String tail: ''}) =>
     _chunks.map((c) => c is Function ? c(parameters) : c).join() + tail;
+
+  List<String> urlParameterNames() {
+    return _fields;
+  }
 }

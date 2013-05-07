@@ -7,6 +7,7 @@ library route.client;
 import 'dart:async';
 import 'dart:collection';
 import 'dart:html';
+import 'dart:uri';
 
 import 'package:logging/logging.dart';
 
@@ -192,17 +193,19 @@ class Route {
     return routeToGo;
   }
 
-  String _getHead(String tail) {
+  String _getHead(String tail, Map queryParams) {
     if (parent == null) {
       return tail;
     }
     if (parent._currentRoute == null) {
       throw new StateError('Router $_parent has no current router.');
     }
-    return parent._getHead(parent._currentRoute.reverse(tail));
+    _populateQueryParams(parent._currentRoute._lastEvent.parameters,
+        parent._currentRoute, queryParams);
+    return parent._getHead(parent._currentRoute.reverse(tail), queryParams);
   }
 
-  String _getTailUrl(String routePath, Map parameters) {
+  String _getTailUrl(String routePath, Map parameters, Map queryParams) {
     var routeName = routePath.split('.').first;
     if (!_routes.containsKey(routeName)) {
       throw new StateError('Invalid route name: $routeName');
@@ -211,10 +214,23 @@ class Route {
     var tail = '';
     var childPath = routePath.substring(routeName.length);
     if (childPath.length > 0) {
-      tail = routeToGo._getTailUrl(childPath.substring(1), parameters);
+      tail = routeToGo._getTailUrl(
+          childPath.substring(1), parameters, queryParams);
     }
+    _populateQueryParams(parameters, routeToGo, queryParams);
     return routeToGo.path.reverse(
         parameters: _joinParams(parameters, routeToGo._lastEvent), tail: tail);
+  }
+
+  void _populateQueryParams(Map parameters, Route route, Map queryParams) {
+    parameters.keys.forEach((String prefixedKey) {
+      if (prefixedKey.startsWith('${route.name}.')) {
+        var key = prefixedKey.substring('${route.name}.'.length);
+        if (!route.path.urlParameterNames().contains(key)) {
+          queryParams[prefixedKey] = parameters[prefixedKey];
+        }
+      }
+    });
   }
 
   Map _joinParams(Map parameters, RouteEvent lastEvent) {
@@ -308,9 +324,6 @@ class Router {
    * This method does not perform any navigation, [go] should be used for that.
    * This method is used to invoke a handler after some other code navigates the
    * window, such as [listen].
-   *
-   * If the UrlPattern contains a fragment (#), the handler is always called
-   * with the path version of the URL by converting the # to a /.
    */
   Future<bool> route(String path, {Route startingFrom}) {
     var baseRoute = startingFrom == null ? this.root : _dehandle(startingFrom);
@@ -331,7 +344,7 @@ class Router {
     if (matchedRoute != null) {
       var match = _getMatch(matchedRoute, path);
       if (matchedRoute != baseRoute._currentRoute ||
-          baseRoute._currentRoute._lastEvent.path != match.match) {
+          _paramsChanged(baseRoute, match)) {
         return _processNewRoute(baseRoute, path, match, matchedRoute);
       } else {
         baseRoute._currentRoute._lastEvent =
@@ -343,12 +356,32 @@ class Router {
     return new Future.value(true);
   }
 
+  bool _paramsChanged(Route baseRoute, UrlMatch match) {
+    return baseRoute._currentRoute._lastEvent.path != match.match ||
+        !_mapsEqual(baseRoute._currentRoute._lastEvent.parameters,
+            match.parameters);
+  }
+
+  bool _mapsEqual(Map a, Map b) {
+    if (a.keys.length != b.keys.length) {
+      return false;
+    }
+    for (var keyInA in a.keys) {
+      if (!b.containsKey(keyInA) || a[keyInA] != b[keyInA]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   /// Navigates to a given relative route path, and parameters.
   Future go(String routePath, Map parameters,
             {Route startingFrom, bool replace: false}) {
+    Map queryParams = {};
     var baseRoute = startingFrom == null ? this.root : _dehandle(startingFrom);
-    var newTail = baseRoute._getTailUrl(routePath, parameters);
-    String newUrl = baseRoute._getHead(newTail);
+    var newTail = baseRoute._getTailUrl(routePath, parameters, queryParams) +
+        _buildQuery(queryParams);
+    String newUrl = baseRoute._getHead(newTail, queryParams);
     _logger.finest('go $newUrl');
     return route(newTail, startingFrom: baseRoute).then((success) {
       if (success) {
@@ -362,8 +395,19 @@ class Router {
   String url(String routePath, {Route startingFrom, Map parameters}) {
     var baseRoute = startingFrom == null ? this.root : _dehandle(startingFrom);
     parameters = parameters == null ? {} : parameters;
-    return (_useFragment ? '#' : '') +
-        baseRoute._getHead(baseRoute._getTailUrl(routePath, parameters));
+    Map queryParams = {};
+    var tail = baseRoute._getTailUrl(routePath, parameters, queryParams);
+    return (_useFragment ? '#' : '') + baseRoute._getHead(tail, queryParams) +
+        _buildQuery(queryParams);
+  }
+
+  String _buildQuery(Map queryParams) {
+    var query = queryParams.keys.map((key) =>
+        '$key=${encodeUriComponent(queryParams[key])}').join('&');
+    if (query.isEmpty) {
+      return '';
+    }
+    return '?$query';
   }
 
   Route _dehandle(Route r) {
@@ -378,7 +422,38 @@ class Router {
     if (match == null) { // default route
       return new UrlMatch('', '', {});
     }
+    match.parameters.addAll(_parseQuery(route, path));
     return match;
+  }
+
+  Map _parseQuery(Route route, String path) {
+    var params = {};
+    if (path.indexOf('?') == -1) {
+      return params;
+    }
+    String queryStr = path.substring(path.indexOf('?') + 1);
+    queryStr.split('&').forEach((String keyValPair) {
+      List<String> keyVal = _parseKeyVal(keyValPair);
+      if (keyVal[0].startsWith('${route.name}.')) {
+        var key = keyVal[0].substring('${route.name}.'.length);
+        if (!key.isEmpty) {
+          params[key] = decodeUriComponent(keyVal[1]);
+        }
+      }
+    });
+    return params;
+  }
+
+  List<String> _parseKeyVal(keyValPair) {
+    if (keyValPair.isEmpty) {
+      return ['', ''];
+    }
+    var splitPoint = keyValPair.indexOf('=') == -1 ?
+        keyValPair.length : keyValPair.indexOf('=') + 1;
+    var key = keyValPair.substring(0, splitPoint +
+        (keyValPair.indexOf('=') == -1 ? 0 : -1));
+    var value = keyValPair.substring(splitPoint);
+    return [key, value];
   }
 
   Future<bool> _processNewRoute(Route base, String path, UrlMatch match,
@@ -467,7 +542,7 @@ class Router {
             if (_useFragment) {
               path = _normalizeHash(anchor.hash);
             } else {
-              path = '${anchor.pathname}${anchor.hash}';
+              path = '${anchor.pathname}';
             }
             route(path).then((allowed) {
               if (allowed) {

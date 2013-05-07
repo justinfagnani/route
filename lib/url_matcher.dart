@@ -18,6 +18,11 @@ abstract class UrlMatcher {
    * and a tail.
    */
   String reverse({Map parameters, String tail});
+
+  /**
+   * Returns a list of named parameters in the URL.
+   */
+  List<String> urlParameterNames();
 }
 
 /**
