@@ -89,11 +89,11 @@ router.root
                router
                  ..addDefaultRoute(
                      name: 'view',
-                     path: r'/view',
+                     path: '/view',
                      enter: viewArticle)
                  ..addRoute(
                      name: 'edit',
-                     path: r'/edit',
+                     path: '/edit',
                      enter: editArticle)))
 ```
 
@@ -109,7 +109,7 @@ or
 
 ```dart
 abstract class Routable {
-  void configureRouter(Router router);
+  void configureRoute(Route router);
 }
 ```
 
@@ -130,6 +130,7 @@ The resulting route path will be: `user -> article -> view`, or simply `user.art
 Named Routes in Hierarchical Routers
 ------------------------------------
 
+```dart
 router.go('usersList');
 router.go('user.articles', {'userId': 'jsmith'});
 router.go('user.article.view', {
@@ -140,6 +141,7 @@ router.go('user.article.edit', {
   'userId': 'jsmith',
   'articleId', 1234}
 );
+```
 
 If "go" is invoked on child routers, the router can automatically reconstruct 
 and generate the new URL from the state in the parent routers.
