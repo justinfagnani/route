@@ -14,45 +14,27 @@ Add this package to your pubspec.yaml file:
       
 Then, run `pub install` to download and link in the package.
 
-UrlPattern
+UrlMatcher
 ----------
+Route is built around `UrlMatcher`, an interface that defines URL template
+parsing, matching and reversing.
 
-Route is built around `UrlPattern` a class that matches, parses and produces
-URLs. A `UrlPattern` is similar to a regex, but constrained so that it is
-_reversible_, given a `UrlPattern` and a set of arguments you can produce the
-URL that when parsed returns those same arguments. This is important for keeping
-the URL space for your app flexible so that you can change a URL for a resource
-in one place and keep your app working.
 
-Route lets you use the same URL patterns for client-side and server-side
-routing. Just define a library containing all your URLs.
-
-As an example, consider a blog with a home page and an article page. The article
-URL has the form /article/1234. We want to show articles without reloading the
-page.
-
-Example (urls.dart):
-
-```dart
-library urls;
-
-import 'package:route/url_pattern.dart';
-
-final homeUrl = new UrlPattern(r'/');
-final articleUrl = new UrlPattern(r'/article/(\d+)');
-final allUrls = [homeUrl, articleUrl];
-```
+UrlTemplate
+-----------
+The default implementation of the `UrlMatcher` is `UrlTemplate`. As an example,
+consider a blog with a home page and an article page. The article URL has the
+form /article/1234. It can matched by the following template:
+`/article/:articleId`.
 
 Client Routing
 --------------
 
-On the client, there is a `Router` class that associates `UrlPattern`s
-to handlers. Given a URL, the router finds a pattern that matches, and invokes
-it's handler. This is similar to
-`HttpServer.addRequestHandler(matcher, handler)` on the server. The handlers
-are then responsible for rendering the appropriate changes to the page.
+Router is a stateful object that contains routes and can perform URL routing 
+on those routes.
 
-The `Router` can listen to `Window.onPopState` events and invoke the correct
+The `Router` can listen to `Window.onPopState` (or fallback to 
+Window.onHashChange in older browsers) events and invoke the correct
 handler so that the back button seamlessly works.
 
 Example (client.dart):
@@ -64,21 +46,103 @@ import 'package:route/client.dart';
 
 main() {
   var router = new Router()
-    ..addHandler(homeUrl, showHome)
-    ..addHandler(articleUrl, showArticle)
-    ..listen();
+  router.root
+    ..addRoute(name: 'article', path: '/article/:articleId', enter: showArticle)
+    ..addRoute(name: 'home', defaultRoute: true, path: '/', enter: showHome);
+  router.listen();
 }
 
-void showHome(String path) {
+void showHome(RouteEvent e) {
   // nothing to parse from path, since there are no groups
 }
 
-void showArticle(String path) {
-  var articleId = articleUrl.parse(req.path)[0];
+void showArticle(RouteEvent e) {
+  var articleId = e.parameters['articleId'];
   // show article page with loading indicator
   // load article from server, then render article
 }
 ```
+
+The client side router can let you define nested routes.
+
+```dart
+var router = new Router();
+router.root
+  ..addRoute(
+     name: 'usersList',
+     path: '/users',
+     defaultRoute: true,
+     enter: showUsersList)
+  ..addRoute(
+     name: 'user',
+     path: '/user/:userId',
+     mount: (router) =>
+       router
+         ..addDefaultRoute(
+             name: 'articleList',
+             path: '/acticles',
+             enter: showArticlesList)
+         ..addRoute(
+             name: 'article',
+             path: '/article/:articleId',
+             mount: (router) =>
+               router
+                 ..addDefaultRoute(
+                     name: 'view',
+                     path: r'/view',
+                     enter: viewArticle)
+                 ..addRoute(
+                     name: 'edit',
+                     path: r'/edit',
+                     enter: editArticle)))
+```
+
+The mount parameter takes either a function that accepts an instance of a new 
+child router as the only parameter, or an instance of an object that implements 
+Routable interface.
+
+```dart
+typedef void MountFn(Router router);
+```
+
+or
+
+```dart
+abstract class Routable {
+  void configureRouter(Router router);
+}
+```
+
+In either case, the child router is instantiated by the parent router an
+injected into the mount point, at which point child router can be configured
+with new routes.
+
+Routing with hierarchical router: when the parent router performs a prefix 
+match on the URL, it removes the matched part from the URL and invokes the 
+child router with the remaining tail. 
+
+For instance, with the above example lets consider this URL: `/user/jsmith/article/1234`.
+Route "user" will match `/user/jsmith` and invoke the child router with `/article/1234`.
+Route "article" will match `/article/1234` and invoke the child router with ``.
+Route "view" will be matched as the default route.
+The resulting route path will be: `user -> article -> view`, or simply `user.article.view`
+
+Named Routes in Hierarchical Routers
+------------------------------------
+
+router.go('usersList');
+router.go('user.articles', {'userId': 'jsmith'});
+router.go('user.article.view', {
+  'userId': 'jsmith',
+  'articleId', 1234}
+);
+router.go('user.article.edit', {
+  'userId': 'jsmith',
+  'articleId', 1234}
+);
+
+If "go" is invoked on child routers, the router can automatically reconstruct 
+and generate the new URL from the state in the parent routers.
 
 Server Routing
 --------------
