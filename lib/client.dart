@@ -351,7 +351,6 @@ class Router {
             new RouteEvent(match.match, match.parameters);
         return route(match.tail, startingFrom: matchedRoute);
       }
-      return new Future.value(true);
     }
     return new Future.value(true);
   }
@@ -412,7 +411,7 @@ class Router {
 
   Route _dehandle(Route r) {
     if (r is RouteHandle) {
-      return r._getHost(r);
+      return (r as RouteHandle)._getHost(r);
     }
     return r;
   }
