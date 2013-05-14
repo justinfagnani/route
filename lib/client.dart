@@ -22,7 +22,7 @@ typedef RouteEventHandler(RouteEvent path);
 
 /**
  * A helper Router handle that scopes all route event subsriptions to it's
- * instance and provides an convinience [discart] method.
+ * instance and provides an convinience [discard] method.
  */
 class RouteHandle implements Route {
   Route _route;
@@ -46,14 +46,14 @@ class RouteHandle implements Route {
     _onLeaveSubscription = _route.onLeave.listen(_onLeaveController.add);
   }
 
-  /// Discarts this handle.
-  void discart() {
-    _logger.finest('discarting handle for $_route');
+  /// discards this handle.
+  void discard() {
+    _logger.finest('discarding handle for $_route');
     _onRouteSubscription.cancel();
     _onLeaveSubscription.cancel();
     _onRouteController.close();
     _onLeaveController.close();
-    _childHandles.forEach((c) => c.discart());
+    _childHandles.forEach((RouteHandle c) => c.discard());
     _childHandles.clear();
     _onRoute = null;
     _onLeave = null;
