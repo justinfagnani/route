@@ -1,16 +1,16 @@
 name:  route
 description:  A client + server routing library for Dart
-version: 0.4.5
+version: 0.4.6
 author: "Dart Authors <misc@dartlang.org>"
 homepage: https://github.com/dart-lang/route
 
 dependencies:
   browser: any
   logging: any
-  unittest: any # using 'matchers'
+  unittest: any
 
 dev_dependencies:
   web_ui: any
 
 environment:
-  sdk: ">=0.4.7+1.r21548"
+  sdk: ">=0.5.12.r23368"
