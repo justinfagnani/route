@@ -50,7 +50,6 @@ class CompanyInfoComponent extends WebComponent {
     router.go(section, {}, startingFrom: route).then((allowed) {
       if (allowed) {
         showSection(section);
-        watchers.dispatch();
       }
     });
   }
