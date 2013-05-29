@@ -19,7 +19,7 @@ class CompanyInfoLoaderComponent extends WebComponent {
   }
 
   removed() {
-    route.discart();
+    route.discard();
   }
 
   _showCompanyInfo(RouteEvent e) {

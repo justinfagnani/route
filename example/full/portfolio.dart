@@ -39,7 +39,7 @@ class PortfolioComponent extends WebComponent {
   }
 
   removed() {
-    route.discart();
+    route.discard();
   }
 
   void showCompanyTab(RouteEvent e) {
