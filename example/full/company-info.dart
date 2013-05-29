@@ -31,7 +31,7 @@ class CompanyInfoComponent extends WebComponent {
   }
 
   removed() {
-    route.discart();
+    route.discard();
   }
 
   notesLeave(RouteEvent e) {

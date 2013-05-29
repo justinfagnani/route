@@ -15,6 +15,6 @@ class RootView extends WebComponent {
   }
 
   removed() {
-    route.discart();
+    route.discard();
   }
 }
