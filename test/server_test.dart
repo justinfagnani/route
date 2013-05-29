@@ -9,7 +9,6 @@ import 'package:route/server.dart';
 import 'dart:async';
 import 'dart:collection';
 import 'dart:io';
-import 'dart:uri';
 
 class HttpRequestMock extends Mock implements HttpRequest {
   Uri uri;

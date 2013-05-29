@@ -7,7 +7,6 @@ library route.client;
 import 'dart:async';
 import 'dart:collection';
 import 'dart:html';
-import 'dart:uri';
 
 import 'package:logging/logging.dart';
 
@@ -198,7 +197,7 @@ class Route {
       return tail;
     }
     if (parent._currentRoute == null) {
-      throw new StateError('Router $_parent has no current router.');
+      throw new StateError('Router $parent has no current router.');
     }
     _populateQueryParams(parent._currentRoute._lastEvent.parameters,
         parent._currentRoute, queryParams);
@@ -238,7 +237,7 @@ class Route {
       return parameters;
     }
     var joined = new Map.from(lastEvent.parameters);
-    joined.addAll(parameters);
+    parameters.forEach((k, v) { joined[k] = v; });
     return joined;
   }
 
@@ -402,7 +401,7 @@ class Router {
 
   String _buildQuery(Map queryParams) {
     var query = queryParams.keys.map((key) =>
-        '$key=${encodeUriComponent(queryParams[key])}').join('&');
+        '$key=${Uri.encodeComponent(queryParams[key])}').join('&');
     if (query.isEmpty) {
       return '';
     }
@@ -421,7 +420,7 @@ class Router {
     if (match == null) { // default route
       return new UrlMatch('', '', {});
     }
-    match.parameters.addAll(_parseQuery(route, path));
+    _parseQuery(route, path).forEach((k, v) { match.parameters[k] = v; });
     return match;
   }
 
@@ -436,7 +435,7 @@ class Router {
       if (keyVal[0].startsWith('${route.name}.')) {
         var key = keyVal[0].substring('${route.name}.'.length);
         if (!key.isEmpty) {
-          params[key] = decodeUriComponent(keyVal[1]);
+          params[key] = Uri.decodeComponent(keyVal[1]);
         }
       }
     });
@@ -571,7 +570,7 @@ class Router {
   Future<bool> gotoUrl(String url) {
     return route(url).then((success) {
       if (success) {
-        _go(url, null);
+        _go(url, null, false);
       }
     });
   }
