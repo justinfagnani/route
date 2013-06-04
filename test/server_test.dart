@@ -14,12 +14,14 @@ class HttpRequestMock extends Mock implements HttpRequest {
   Uri uri;
   String method;
   HttpResponseMock response = new HttpResponseMock();
+  
   HttpRequestMock(this.uri, {this.method});
 }
 
 class HttpResponseMock extends Mock implements HttpResponse {
   int statusCode;
   var _onClose;
+  
   Future close() {
     if (_onClose != null) {
       _onClose();

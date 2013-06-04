@@ -36,8 +36,8 @@ class RouteHandle implements Route {
   List<RouteHandle> _childHandles = <RouteHandle>[];
 
   RouteHandle._new(Route this._route)
-      : _onRouteController = new StreamController<RouteEvent>(),
-        _onLeaveController = new StreamController<RouteEvent>() {
+      : _onRouteController = new StreamController<RouteEvent>(sync: true),
+        _onLeaveController = new StreamController<RouteEvent>(sync: true) {
     _onRoute = _onRouteController.stream.asBroadcastStream();
     _onLeave = _onLeaveController.stream.asBroadcastStream();
 
@@ -127,8 +127,8 @@ class Route {
   Stream<RouteEvent> get onLeave => _onLeave;
 
   Route._new({this.name, this.path, this.parent})
-      : _onRouteController = new StreamController<RouteEvent>(),
-        _onLeaveController = new StreamController<RouteEvent>() {
+      : _onRouteController = new StreamController<RouteEvent>(sync: true),
+        _onLeaveController = new StreamController<RouteEvent>(sync: true) {
     _onRoute = _onRouteController.stream.asBroadcastStream();
     _onLeave = _onLeaveController.stream.asBroadcastStream();
   }
@@ -308,6 +308,7 @@ class Router {
    */
   Router({bool useFragment, Window windowImpl})
       : this._init(null, useFragment: useFragment, windowImpl: windowImpl);
+
 
   Router._init(Router parent, {bool useFragment, Window windowImpl})
       : _useFragment = (useFragment == null)
