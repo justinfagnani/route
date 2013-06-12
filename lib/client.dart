@@ -27,20 +27,17 @@ class RouteHandle implements Route {
   Route _route;
   final StreamController<RouteEvent> _onRouteController;
   final StreamController<RouteEvent> _onLeaveController;
-  Stream<RouteEvent> _onRoute;
-  Stream<RouteEvent> _onLeave;
-  Stream<RouteEvent> get onRoute => _onRoute;
-  Stream<RouteEvent> get onLeave => _onLeave;
+  Stream<RouteEvent> get onRoute => _onRouteController.stream;
+  Stream<RouteEvent> get onLeave => _onLeaveController.stream;
   StreamSubscription _onRouteSubscription;
   StreamSubscription _onLeaveSubscription;
   List<RouteHandle> _childHandles = <RouteHandle>[];
 
   RouteHandle._new(Route this._route)
-      : _onRouteController = new StreamController<RouteEvent>(sync: true),
-        _onLeaveController = new StreamController<RouteEvent>(sync: true) {
-    _onRoute = _onRouteController.stream.asBroadcastStream();
-    _onLeave = _onLeaveController.stream.asBroadcastStream();
-
+      : _onRouteController =
+            new StreamController<RouteEvent>.broadcast(sync: true),
+        _onLeaveController =
+            new StreamController<RouteEvent>.broadcast(sync: true) {
     _onRouteSubscription = _route.onRoute.listen(_onRouteController.add);
     _onLeaveSubscription = _route.onLeave.listen(_onLeaveController.add);
   }
@@ -54,8 +51,6 @@ class RouteHandle implements Route {
     _onLeaveController.close();
     _childHandles.forEach((RouteHandle c) => c.discard());
     _childHandles.clear();
-    _onRoute = null;
-    _onLeave = null;
     _route = null;
   }
 
@@ -121,17 +116,14 @@ class Route {
   Route _currentRoute;
   RouteEvent _lastEvent;
 
-  Stream<RouteEvent> _onRoute;
-  Stream<RouteEvent> _onLeave;
-  Stream<RouteEvent> get onRoute => _onRoute;
-  Stream<RouteEvent> get onLeave => _onLeave;
+  Stream<RouteEvent> get onRoute => _onRouteController.stream;
+  Stream<RouteEvent> get onLeave => _onLeaveController.stream;
 
   Route._new({this.name, this.path, this.parent})
-      : _onRouteController = new StreamController<RouteEvent>(sync: true),
-        _onLeaveController = new StreamController<RouteEvent>(sync: true) {
-    _onRoute = _onRouteController.stream.asBroadcastStream();
-    _onLeave = _onLeaveController.stream.asBroadcastStream();
-  }
+      : _onRouteController =
+            new StreamController<RouteEvent>.broadcast(sync: true),
+        _onLeaveController =
+            new StreamController<RouteEvent>.broadcast(sync: true);
 
   void addRoute({String name, Pattern path, bool defaultRoute: false,
       RouteEventHandler enter, RouteEventHandler leave, mount}) {
