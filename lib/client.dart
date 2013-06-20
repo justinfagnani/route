@@ -150,7 +150,7 @@ class Router {
   }
   
   /**
-   * Returns an [Event] handler suitable for use as a click handler on [:<a>;]
+   * Returns an [Event] handler suitable for use as a click handler on [:<a>:]
    * elements. The handler reverses [ur] with [args] and uses [window.pushState]
    * with [title] to change the user visible URL without navigating to it.
    * [Event.preventDefault] is called to stop the default behavior. Then the
