@@ -9,22 +9,24 @@ import 'package:route/server.dart';
 import 'dart:async';
 import 'dart:collection';
 import 'dart:io';
-import 'dart:uri';
 
 class HttpRequestMock extends Mock implements HttpRequest {
   Uri uri;
   String method;
   HttpResponseMock response = new HttpResponseMock();
+
   HttpRequestMock(this.uri, {this.method});
 }
 
 class HttpResponseMock extends Mock implements HttpResponse {
   int statusCode;
   var _onClose;
-  void close() {
+
+  Future close() {
     if (_onClose != null) {
       _onClose();
     }
+    return new Future.value();
   }
 }
 
@@ -32,19 +34,19 @@ main() {
   test ('http method can be used to distinguish route', (){
     var controller = new StreamController<HttpRequest>();
     var router = new Router(controller.stream);
-    var testReq = new HttpRequestMock(new Uri('/foo'),method:'GET');
+    var testReq = new HttpRequestMock(Uri.parse('/foo'),method:'GET');
     router.serve('/foo', method:'GET').listen(expectAsync1((req) {
       expect(req, testReq);
     }));
     router.serve('/foo', method:'POST').listen(expectAsync1((_) {}, count:0));
     controller.add(testReq);
   });
-  
+
   test ('if no http method provided, all methods match', (){
     var controller = new StreamController<HttpRequest>();
     var router = new Router(controller.stream);
-    var testGetReq = new HttpRequestMock(new Uri('/foo'), method:'GET');
-    var testPostReq = new HttpRequestMock(new Uri('/foo'), method:'POST');
+    var testGetReq = new HttpRequestMock(Uri.parse('/foo'), method:'GET');
+    var testPostReq = new HttpRequestMock(Uri.parse('/foo'), method:'POST');
     var requests = <HttpRequest>[];
     router.serve('/foo').listen(expectAsync1((request) {
       requests.add(request);
@@ -54,13 +56,13 @@ main() {
     }, count: 2));
     controller.add(testGetReq);
     controller.add(testPostReq);
-    
+
   });
-  
+
   test('serve 1', () {
     var controller = new StreamController<HttpRequest>();
     var router = new Router(controller.stream);
-    var testReq = new HttpRequestMock(new Uri('/foo'));
+    var testReq = new HttpRequestMock(Uri.parse('/foo'));
     router.serve('/foo').listen(expectAsync1((req) {
       expect(req, testReq);
     }));
@@ -71,7 +73,7 @@ main() {
   test('serve 2', () {
     var controller = new StreamController<HttpRequest>();
     var router = new Router(controller.stream);
-    var testReq = new HttpRequestMock(new Uri('/bar'));
+    var testReq = new HttpRequestMock(Uri.parse('/bar'));
     router.serve('/foo').listen(expectAsync1((req) {}, count: 0));
     router.serve('/bar').listen(expectAsync1((req) {
       expect(req, testReq);
@@ -82,7 +84,7 @@ main() {
   test('404', () {
     var controller = new StreamController<HttpRequest>();
     var router = new Router(controller.stream);
-    var testReq = new HttpRequestMock(new Uri('/bar'));
+    var testReq = new HttpRequestMock(Uri.parse('/bar'));
     testReq.response._onClose = expectAsync0(() {
       expect(testReq.response.statusCode, 404);
     });
@@ -93,7 +95,7 @@ main() {
   test('default', () {
     var controller = new StreamController<HttpRequest>();
     var router = new Router(controller.stream);
-    var testReq = new HttpRequestMock(new Uri('/bar'));
+    var testReq = new HttpRequestMock(Uri.parse('/bar'));
     testReq.response._onClose = expectAsync0(() {
       expect(testReq.response.statusCode, 200);
     });
@@ -107,7 +109,7 @@ main() {
   test('filter pass', () {
     var controller = new StreamController<HttpRequest>();
     var router = new Router(controller.stream);
-    var testReq = new HttpRequestMock(new Uri('/foo'));
+    var testReq = new HttpRequestMock(Uri.parse('/foo'));
     router.filter('/foo', expectAsync1((req) {
       expect(req, testReq);
       return new Future.value(true);
@@ -121,7 +123,7 @@ main() {
   test('filter no-pass', () {
     var controller = new StreamController<HttpRequest>();
     var router = new Router(controller.stream);
-    var testReq = new HttpRequestMock(new Uri('/foo'));
+    var testReq = new HttpRequestMock(Uri.parse('/foo'));
     router.filter('/foo', expectAsync1((req) {
       expect(req, testReq);
       return new Future.value(false);
