@@ -37,6 +37,11 @@ class _MultiPattern extends Pattern {
     }
     return _allMatches.expand((x) => x);
   }
+
+  Match matchAsPrefix(String str, [int start = 0]) {
+    return allMatches(str).firstWhere((match) => match.start == start,
+        orElse: () => null);
+  }
 }
 
 /**

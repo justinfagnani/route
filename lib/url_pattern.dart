@@ -161,6 +161,9 @@ class UrlPattern implements Pattern {
    */
   bool matches(String str) => _matches(regex, str);
 
+  Match matchAsPrefix(String string, [int start = 0]) =>
+      regex.matchAsPrefix(string, start);
+
   // TODO(justinfagnani): file bug for similar method to be added to Pattern
   bool _matches(Pattern p, String str) {
     var iter = p.allMatches(str).iterator;
