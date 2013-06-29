@@ -4,6 +4,7 @@
 
 library route.client;
 
+import 'dart:collection';
 import 'dart:html';
 import 'package:logging/logging.dart';
 import 'url_pattern.dart';
@@ -21,7 +22,7 @@ typedef void EventHandler(Event e);
  * and creating HTML event handlers that navigate to a URL.
  */
 class Router {
-  final Map<UrlPattern, Handler> _handlers;
+  final LinkedHashMap<UrlPattern, Handler> _handlers;
   final bool useFragment;
   bool _listen = false;
 
@@ -32,11 +33,15 @@ class Router {
    * [History.supportsState].
    */
   Router({bool useFragment})
-      : _handlers = new Map<UrlPattern, Handler>(),
+      : _handlers = new LinkedHashMap<UrlPattern, Handler>(),
         useFragment = (useFragment == null)
             ? !History.supportsState
             : useFragment;
 
+  /**
+   * Registers a function that will be invoked when the router handles a URL
+   * that matches [pattern].
+   */
   void addHandler(UrlPattern pattern, Handler handler) {
     _logger.finest('addHandler $pattern');
     _handlers[pattern] = handler;
@@ -49,7 +54,7 @@ class Router {
     }
     return matches.first;
   }
-  
+
   /**
    * Finds a matching [UrlPattern] added with [addHandler], parses the path
    * and invokes the associated callback.
@@ -67,7 +72,7 @@ class Router {
     if (url != null) {
       // always give handlers a non-fragment path
       var fixedPath = url.reverse(url.parse(path));
-      _handlers[url](fixedPath);      
+      _handlers[url](fixedPath);
     } else {
       _logger.info("Unhandled path: $path");
     }
@@ -102,7 +107,7 @@ class Router {
         if (e.target is AnchorElement) {
           AnchorElement anchor = e.target;
           if (anchor.host == window.location.host) {
-            var fragment = (anchor.hash == '') ? '' : '${anchor.hash}'; 
+            var fragment = (anchor.hash == '') ? '' : '${anchor.hash}';
             gotoPath("${anchor.pathname}$fragment", anchor.title);
             e.preventDefault();
           }
@@ -126,7 +131,7 @@ class Router {
       throw new ArgumentError('Unknown URL pattern: $url');
     }
   }
-  
+
   void gotoPath(String path, String title) {
     _logger.finest('gotoPath $path');
     var url = _getUrl(path);
@@ -148,7 +153,7 @@ class Router {
       window.history.pushState(null, title, path);
     }
   }
-  
+
   /**
    * Returns an [Event] handler suitable for use as a click handler on [:<a>:]
    * elements. The handler reverses [ur] with [args] and uses [window.pushState]
