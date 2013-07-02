@@ -1,12 +1,13 @@
+// Copyright (c) 2013, the Dart project authors.  Please see the AUTHORS file
+// for details. All rights reserved. Use of this source code is governed by a
+// BSD-style license that can be found in the LICENSE file.
+
 library example;
 
 import 'dart:html';
 import 'package:route/client.dart';
 import 'package:logging/logging.dart';
-
-final one = new UrlPattern('/one');
-final two = new UrlPattern('/two');
-final example = new UrlPattern('/(.*)/example.html');
+import 'urls.dart' as urls;
 
 main() {
   Logger.root.level = Level.FINEST;
@@ -16,9 +17,9 @@ main() {
   query('#one').classes.add('selected');
 
   var router = new Router()
-    ..addHandler(one, showOne)
-    ..addHandler(two, showTwo)
-    ..addHandler(example, (_) => null)
+    ..addHandler(urls.one, showOne)
+    ..addHandler(urls.two, showTwo)
+    ..addHandler(urls.home, (_) => null)
     ..listen();
 }
 
