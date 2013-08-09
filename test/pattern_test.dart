@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 
 import 'package:unittest/unittest.dart';
-import 'package:route/pattern.dart';
+import 'package:route/src/pattern.dart';
 
 main() {
   test('matchAny', () {

@@ -11,6 +11,7 @@ class MockWindow extends Mock implements Window {
   MockHistory history = new MockHistory();
   MockLocation location = new MockLocation();
   MockDocument document = new MockDocument();
+  noSuchMethod(i) => super.noSuchMethod(i);
 }
 
 class MockHistory extends Mock implements History {
@@ -23,12 +24,16 @@ class MockHistory extends Mock implements History {
   void replaceState(Object data, String title, [String url]) {
     log.add(new LogEntry(name, 'replaceState', [data, title, url], Action.IGNORE));
   }
+  noSuchMethod(i) => super.noSuchMethod(i);
 }
 
-class MockLocation extends Mock implements Location {}
+class MockLocation extends Mock implements Location {
+  noSuchMethod(i) => super.noSuchMethod(i);
+}
 
 class MockDocument extends Mock implements HtmlDocument {
   //TODO(pavelgj): ugly hack for making tests run in dart2js
-  String set title(title) =>
+  void set title(title) =>
       log.add(new LogEntry(name, '=title', [title], Action.IGNORE));
+  noSuchMethod(i) => super.noSuchMethod(i);
 }

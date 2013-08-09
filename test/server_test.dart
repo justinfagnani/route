@@ -5,7 +5,7 @@
 
 import 'package:unittest/unittest.dart';
 import 'package:unittest/mock.dart';
-import 'package:route/server.dart';
+import '../lib/server.dart';
 import 'dart:async';
 import 'dart:collection';
 import 'dart:io';
@@ -14,20 +14,22 @@ class HttpRequestMock extends Mock implements HttpRequest {
   Uri uri;
   String method;
   HttpResponseMock response = new HttpResponseMock();
-  
+
   HttpRequestMock(this.uri, {this.method});
+  noSuchMethod(i) => super.noSuchMethod(i);
 }
 
 class HttpResponseMock extends Mock implements HttpResponse {
   int statusCode;
   var _onClose;
-  
+
   Future close() {
     if (_onClose != null) {
       _onClose();
     }
     return new Future.value();
   }
+  noSuchMethod(i) => super.noSuchMethod(i);
 }
 
 main() {
@@ -41,7 +43,7 @@ main() {
     router.serve('/foo', method:'POST').listen(expectAsync1((_) {}, count:0));
     controller.add(testReq);
   });
-  
+
   test ('if no http method provided, all methods match', (){
     var controller = new StreamController<HttpRequest>();
     var router = new Router(controller.stream);
@@ -56,9 +58,9 @@ main() {
     }, count: 2));
     controller.add(testGetReq);
     controller.add(testPostReq);
-    
+
   });
-  
+
   test('serve 1', () {
     var controller = new StreamController<HttpRequest>();
     var router = new Router(controller.stream);

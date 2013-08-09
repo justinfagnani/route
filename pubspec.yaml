@@ -1,16 +1,18 @@
-name:  route
-description:  A client + server routing library for Dart
-version: 0.4.6
-author: "Dart Authors <misc@dartlang.org>"
+name: route
+version: 0.5.0
+author: Dart Authors <misc@dartlang.org>
+description: A client + server routing library for Dart
 homepage: https://github.com/dart-lang/route
-
-dependencies:
-  browser: any
-  logging: any
-  unittest: any
-
-dev_dependencies:
-  web_ui: any
-
 environment:
-  sdk: ">=0.5.12.r23368"
+  sdk: '>=0.5.12'
+dependencies:
+  logging: any
+  uri_template:
+    path: /Users/justinfagnani/Documents/Projects/urit2
+dev_dependencies:
+  browser: any
+  fancy_syntax: any
+  mdv: any
+  observe: any
+  unittest: any
+  polymer: any

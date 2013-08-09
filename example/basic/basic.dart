@@ -3,25 +3,30 @@ library example;
 import 'dart:html';
 
 import 'package:logging/logging.dart';
-import 'package:route/client.dart';
-import 'package:route/url_pattern.dart';
+import '../../lib/client.dart';
 
 main() {
-  new Logger('')
+  Logger.root
     ..level = Level.FINEST
     ..onRecord.listen((r) => print('[${r.level}] ${r.message}'));
 
   query('#warning').remove();
 
-  var router = new Router(useFragment: true);
-  router.root
-    ..addRoute(name: 'one', defaultRoute: true, path: '/one', enter: showOne)
-    ..addRoute(name: 'two', path: '/two', enter: showTwo);
+  var router = new Router({
+    'one': route('/one')..onEnter.listen(showOne),
+    'two': route('/two')..onEnter.listen(showTwo),
+    'catchAll': route('/{a}')..onEnter.listen(showHome),
+  }, index: 'one');
 
-  query('#linkOne').attributes['href'] = router.url('one');
-  query('#linkTwo').attributes['href'] = router.url('two');
+  query('#linkOne').attributes['href'] = router['one'].getUri();
+  query('#linkTwo').attributes['href'] = router['two'].getUri();
 
   router.listen();
+}
+
+void showHome(RouteEvent e) {
+  print("showHome: ${e.route.parent}");
+  e.route.parent.navigate('one');
 }
 
 void showOne(RouteEvent e) {

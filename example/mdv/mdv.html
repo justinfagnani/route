@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <title>example</title>
+    <style>
+      section {
+        border: solid 1px #888;
+      }
+
+      fs-switcher > * {
+        display: none;
+      }
+
+      fs-switcher > .selected {
+        display: block;
+      }
+
+      .warning {
+        color: red;
+      }
+    </style>
+  </head>
+  <body>
+    <element name="fs-switcher" constructor="Switcher">
+      <template><content></content></template>
+    </element>
+    <h1>MDV Demo</h1>
+    <template id="main" bind>
+      <nav>
+        <a href="{{ router['one'].getUri() }}" title="Section One">One</a>
+        <a href="{{ router['two'].getUri() }}" title="Section Two">Two</a>
+      </nav>
+      <fs-switcher select-on="{{ section }}">
+        <section select-case="one">
+          <h2>Section One</h2>
+        </section>
+        <section select-case="two">
+          <h2>Section Two</h2>
+          To demonstrate allowing navigation based on Futures, Section Two
+          will take 5 seconds to hide when navigated away from.
+          <template if="{{ countdown > 0 }}">
+            <div>Section Two will hide in {{ countdown }} seconds.</div>
+          </template>
+        </section>
+      </fs-switcher>
+    </template>
+    <script type="application/dart" src="mdv.dart"></script>
+    <script src="packages/browser/dart.js"></script>
+  </body>
+</html>

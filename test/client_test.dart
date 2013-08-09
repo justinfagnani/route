@@ -5,13 +5,12 @@ import 'package:unittest/unittest.dart';
 import 'package:unittest/mock.dart';
 import 'package:unittest/html_enhanced_config.dart';
 import 'package:route/client.dart';
-import 'package:route/url_pattern.dart';
 
 import 'mocks.dart';
 
 main() {
   useHtmlEnhancedConfiguration();
-  
+
   test('paths are routed to routes added with addRoute', () {
     Router router = new Router();
     router.root.addRoute(
