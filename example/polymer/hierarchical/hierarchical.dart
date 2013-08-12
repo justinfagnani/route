@@ -3,20 +3,30 @@ library example;
 import 'dart:async';
 import 'dart:html';
 
-import 'package:custom_element/custom_element.dart';
 import 'package:fancy_syntax/syntax.dart';
 import 'package:logging/logging.dart';
-import 'package:mdv/mdv.dart' as mdv;
-import 'package:observe/observe.dart';
 import 'package:route/client.dart';
-
-import 'switcher.dart';
+import 'package:polymer/polymer.dart';
 
 class App extends ChangeNotifierBase {
+  List sections = ['one', 'two'];
+
   String _section;
   String get section => _section;
   void set section(s) {
+    print("section = $s");
+    var oldIndex = sectionIndex;
+    notifyPropertyChange(const Symbol('sectionIndex'), oldIndex, sectionIndex);
     _section = notifyPropertyChange(const Symbol('section'), _section, s);
+  }
+
+  String get sectionIndex => '${sections.indexOf(section)}';
+  void set sectionIndex(String i) {
+    int index = int.parse(i, onError: (_) => 0);
+    print('set sectionIndex $index');
+    if (section != sections[index]) {
+      section = sections[index];
+    }
   }
 
   int _countdown;
@@ -56,12 +66,13 @@ class App extends ChangeNotifierBase {
 var app = new App()..section = 'one';
 
 main() {
+  print("main");
   new Logger('')
     ..level = Level.FINEST
     ..onRecord.listen((r) => print('[${r.level}] ${r.message}'));
 
-  mdv.initialize();
-  registerCustomElement('fs-switcher', () => new Switcher());
+//  mdv.initialize();
+//  registerCustomElement('r-switcher', () => new Switcher());
 
   query('#main')
     ..bindingDelegate = new FancySyntax()

@@ -37,6 +37,11 @@ class _MultiPattern extends Pattern {
     }
     return _allMatches.expand((x) => x);
   }
+
+  Match matchAsPrefix(String str, [int start = 0]) {
+    return allMatches(str).firstWhere((match) => match.start == start,
+        orElse: () => null);
+  }
 }
 
 /**
@@ -55,23 +60,11 @@ bool matchesFull(Pattern pattern, String str) {
   var iter = pattern.allMatches(str).iterator;
   if (iter.moveNext()) {
     var match = iter.current;
-    return match.start == 0 && match.end == str.length && !iter.moveNext();
+    return match.start == 0
+        && match.end == str.length
+        && !iter.moveNext();
   }
   return false;
-}
-
-bool matchesPrefix(Pattern pattern, String str) {
-  Iterable<Match> matches = pattern.allMatches(str);
-  return !matches.isEmpty && matches.first.start == 0;
-}
-
-/// return the tail
-Match prefixMatch(Pattern pattern, String str) {
-  Iterable<Match> matches = pattern.allMatches(str);
-  if (!matches.isEmpty && matches.first.start == 0) {
-    return matches.first;
-  }
-  return null;
 }
 
 bool _hasMatch(Iterable<Match> matches) => matches.iterator.moveNext();

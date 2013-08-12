@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+
+<html>
+  <polymer-element name="r-tab-panel" constructor="TabPanel" on-click="clicked"
+      attributes="selected-index">
+    <template><content></content>
+    {{ selectedIndex }}
+    </template>
+    <style>
+      r-tab-panel {
+        display: block;
+      }
+    </style>
+    <script type="application/dart" src="tab_panel.dart"></script>
+  </polymer-element>
+
+  <polymer-element name="r-tabs" constructor="Tabs">
+    <template><content></content></template>
+    <style>
+      r-tabs {
+        display: block;
+        padding-left: 4px;
+      }
+    </style>
+    <script type="application/dart">
+      import 'package:polymer/polymer.dart';
+
+      @CustomTag('r-tabs')
+      class Tabs extends PolymerElement with ChangeNotifierMixin {
+      }
+    </script>
+  </polymer-element>
+
+  <polymer-element name="r-tab" constructor="Tab">
+    <template><content></content></template>
+    <style>
+      r-tab {
+        display: inline-block;
+        padding: 5px;
+        margin-bottom: -1px;
+        cursor: pointer;
+        color: #888;
+      }
+      r-tab.selected {
+        padding: 4px;
+        border: solid 1px;
+        border-color: #888 #888 #fff #888;
+        color: #000;
+      }
+      r-tab:hover {
+        color: #000;
+      }
+    </style>
+    <script type="application/dart">
+      import 'package:polymer/polymer.dart';
+
+      @CustomTag('r-tab')
+      class Tab extends PolymerElement with ChangeNotifierMixin {
+      }
+    </script>
+  </polymer-element>
+
+  <polymer-element name="r-tab-panels" constructor="TabPanels">
+    <template><content></content></template>
+    <style>
+      r-tab-panels {
+        display: block;
+        border: solid 1px #888;
+      }
+
+      r-tab-panels > * {
+        display: none;
+      }
+
+      r-tab-panels > .selected {
+        display: block;
+      }
+    </style>
+    <script type="application/dart">
+      import 'package:polymer/polymer.dart';
+
+      @CustomTag('r-tab-panels')
+      class TabPanels extends PolymerElement with ChangeNotifierMixin {
+      }
+    </script>
+  </polymer-element>
+</html>

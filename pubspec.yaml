@@ -11,8 +11,10 @@ dependencies:
     path: /Users/justinfagnani/Documents/Projects/urit2
 dev_dependencies:
   browser: any
-  fancy_syntax: any
+  fancy_syntax:
+    path: /Users/justinfagnani/Documents/Projects/fancy-syntax
   mdv: any
   observe: any
   unittest: any
-  polymer: any
+  polymer:
+    path: /Users/justinfagnani/Documents/Projects/web-ui

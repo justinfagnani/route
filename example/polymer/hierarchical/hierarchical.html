@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <title>example</title>
+    <link rel="stylesheet" type="text/css" href="hierarchical.css">
+    <link rel="import" href="../components/tabs.html">
+  </head>
+  <body>
+    <h1>Polymer Hierarchical Demo</h1>
+    <template id="main" bind>
+      <div>Section: <input value="{{ section }}">{{ section }}</div>
+      <div>Sections: {{ sections }}</div>
+      <div>Section Index: <input value="{{ sectionIndex }}">{{ sectionIndex }}</div>
+      <r-tab-panel selected-index="{{ sectionIndex }}">
+        <r-tabs>
+          <r-tab>Section One</r-tab>
+          <r-tab>Section Two</r-tab>
+        </r-tabs>
+        <r-tab-panels>
+          <section>
+            <h2>Section One</h2>
+          </section>
+          <section>
+            <h2>Section Two</h2>
+          </section>
+        </r-tab-panels>
+      </r-tab-panel>
+    </template>
+    <script type="application/dart" src="hierarchical.dart"></script>
+    <script src='packages/polymer/boot.js'></script>
+    <!-- <script src="packages/browser/dart.js"></script> -->
+  </body>
+</html>

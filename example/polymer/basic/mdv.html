@@ -7,22 +7,11 @@
       section {
         border: solid 1px #888;
       }
-
-      fs-switcher > * {
-        display: none;
-      }
-
-      fs-switcher > .selected {
-        display: block;
-      }
-
-      .warning {
-        color: red;
-      }
     </style>
+    <link rel="import" href="../components/switcher.html">
   </head>
   <body>
-    <element name="fs-switcher" constructor="Switcher">
+    <element name="switcher" constructor="Switcher">
       <template><content></content></template>
     </element>
     <h1>MDV Demo</h1>
@@ -31,7 +20,7 @@
         <a href="{{ router['one'].getUri() }}" title="Section One">One</a>
         <a href="{{ router['two'].getUri() }}" title="Section Two">Two</a>
       </nav>
-      <fs-switcher select-on="{{ section }}">
+      <r-switcher select-on="{{ section }}">
         <section select-case="one">
           <h2>Section One</h2>
         </section>
@@ -43,9 +32,9 @@
             <div>Section Two will hide in {{ countdown }} seconds.</div>
           </template>
         </section>
-      </fs-switcher>
+      </r-switcher>
     </template>
     <script type="application/dart" src="mdv.dart"></script>
-    <script src="packages/browser/dart.js"></script>
+    <script src="packages/polymer/boot.js"></script>
   </body>
 </html>

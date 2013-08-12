@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<polymer-element name="r-switcher" constructor="Switcher" attributes="select-on">
+  <template><content></content></template>
+  <style>
+    r-switcher > * {
+      display: none;
+    }
+
+    r-switcher > .selected {
+      display: block;
+    }
+  </style>
+  <script type="application/dart" src="switcher.dart"></script>
+</polymer-element>
