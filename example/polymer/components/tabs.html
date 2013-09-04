@@ -2,10 +2,8 @@
 
 <html>
   <polymer-element name="r-tab-panel" constructor="TabPanel" on-click="clicked"
-      attributes="selected-index">
-    <template><content></content>
-    {{ selectedIndex }}
-    </template>
+      attributes="selected-tab">
+    <template><content></content>current tab: {{ selectedTab }}</template>
     <style>
       r-tab-panel {
         display: block;

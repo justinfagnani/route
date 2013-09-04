@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <title>test</title>
+  </head>
+  <polymer-element name="x-test" constructor="Test">
+    <template>
+      <content class="headers"></content>
+      <content class="bodies"></content>
+    </template>
+    <script type="application/dart">
+      import 'dart:html';
+      import 'package:polymer/polymer.dart';
+      import 'package:fancy_syntax/syntax.dart';
+
+      @CustomTag('x-test')
+      class Test extends PolymerElement {
+        DocumentFragment instanceTemplate(Element template) {
+          var instance = template.createInstance(this, new FancySyntax());
+          print("instance: $instance");
+          return instance;
+        }
+
+        inserted() {
+        /*
+          print("instance shadowRoot: ${this.shadowRoot.query('.headers')}");
+          var headers = this.shadowRoot.query('.headers');
+          print("headers: $headers");
+
+          var headerNodes = this.queryAll('x-section > x-header');
+          for (var h in headerNodes) {
+            headers.getDistributedNodes().add(h);
+          }
+        */
+        }
+      }
+    </script>
+  </polymer-element>
+
+  <body>
+    <x-test>
+      <x-section>
+        <x-header>one</x-header>
+        <x-body>this is one</x-body>
+      </section>
+      <x-section>
+        <x-header>two</x-header>
+        <x-body>this is two</x-body>
+      </section>
+    </x-test>
+    <script type="application/dart" src="test.dart"></script>
+    <script src="packages/polymer/boot.js"></script>
+  </body>
+</html>

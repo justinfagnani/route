@@ -43,8 +43,8 @@ class App extends ChangeNotifierBase {
       'one': route('/one')
           ..onEnter.listen((e) => section = 'one'),
       'two': route('/two')
-          ..onEnter.listen((e) => section = 'two')
-          ..onExit.listen(hideTwo),
+          ..onEnter.listen((e) => section = 'two'),
+//          ..onExit.listen(hideTwo),
       'catchAll': route('/{a}')
           ..onEnter.listen((e) => e.route.parent.navigate('one')),
     }, index: 'one');
@@ -70,9 +70,6 @@ main() {
   new Logger('')
     ..level = Level.FINEST
     ..onRecord.listen((r) => print('[${r.level}] ${r.message}'));
-
-//  mdv.initialize();
-//  registerCustomElement('r-switcher', () => new Switcher());
 
   query('#main')
     ..bindingDelegate = new FancySyntax()

@@ -14,6 +14,7 @@ import 'dart:collection';
 import 'dart:html' as html;
 
 import 'package:logging/logging.dart';
+import 'package:observe/observe.dart';
 import 'package:uri_template/uri_template.dart';
 
 part 'src/client/route.dart';

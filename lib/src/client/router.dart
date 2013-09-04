@@ -18,7 +18,6 @@ class Router {
   final bool _useFragment;
   final html.Window _window;
   bool _listen = false;
-//  String _lastRoute;
 
   /**
    * [useFragment] determines whether this Router uses pure paths with
@@ -59,7 +58,7 @@ class Router {
           path: location.pathname,
           query: location.search,
           fragment: location.hash);
-      root.enter(uri).then((allowed) {
+      root._enter(uri).then((allowed) {
         // if not allowed, we need to restore the browser location
         if (!allowed) _window.history.forward();
       });
@@ -77,7 +76,7 @@ class Router {
                 path: anchor.pathname,
                 query: anchor.search,
                 fragment: anchor.hash);
-            root.enter(uri).then((allowed) {
+            root._enter(uri).then((allowed) {
               if (allowed) _navigate(uri, null, false);
             });
           }

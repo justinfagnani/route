@@ -19,7 +19,7 @@ Route route(template, {String defaultRoute, String index,
  * fires events when the application enters or leaves the state matched by the
  * route.
  */
-class Route {
+class Route extends ChangeNotifierBase {
 
   final UriTemplate template;
   final UriParser _parser;
@@ -32,7 +32,16 @@ class Route {
   Route _parent;
   Router _router;
 
-  Route _currentChild;
+  Route get _currentChild => _children[_currentChildName];
+
+  String _currentChildName;
+  String get currentChildName => _currentChildName;
+  void _setCurrentChildName(c) {
+    // set route
+    print('_setCurrentChildName: $c');
+    _currentChildName = notifyPropertyChange(const Symbol('currentChildName'),
+        _currentChildName, c);
+  }
 
   Route._(UriTemplate template, {String index, String defaultRouteName})
       : this.template = template,
@@ -62,6 +71,10 @@ class Route {
 
   UriMatch _match(Uri uri) => _parser.parsePrefix(uri);
 
+  void _setCUrrentRoute() {
+
+  }
+
   navigate(String routeName, {Map<String, String> parameters}) {
     var newRoute = _children[routeName];
     if (newRoute == null) {
@@ -69,50 +82,68 @@ class Route {
     }
     var newUri = Uri.parse(newRoute.template.expand(parameters));
     // TODO: push the new URI to the router / window URL bar
-    enter(newUri).then((allowed) {
+    _enter(newUri).then((allowed) {
       print("navigated");
       _router._navigate(newUri, null, true);
     });
   }
 
-  Future<bool> enter(Uri uri) {
+  Future<bool> _enter(Uri uri, {bool asIndex: false}) {
     print("Route($template).enter($uri): _currentChild: $_currentChild");
-    var match = _match(uri);
-    if (!match.matches) {
-      throw new ArgumentError("Internal Error: URI $uri doesn't match "
-          "$template");
-    }
-    var childUri = match.rest;
-    var event = new RouteEvent._(this, match.rest, match.parameters);
-    print(_children);
-    if (_children.containsKey('catchAll')) {
-      print("catchAll($childUri): ${_children['catchAll']._match(childUri)}");
-    }
-    var matchingChildren = _children.values
-        .where((r) => r._match(childUri).matches);
-    var leaveFuture;
-    var newChild = (matchingChildren.isNotEmpty)
-        ? matchingChildren.first
-        : _indexRoute;
 
-    leaveFuture = (_currentChild != null && newChild != _currentChild)
-        ? _currentChild.exit(childUri)
-        : new Future.value(true);
+//    var leaveFuture;
+//    var event;
+    var newChildName;
+    var childUri;
+    var parameters;
+    bool useIndex = asIndex;
+
+    if (!asIndex) {
+      var match = _match(uri);
+      if (!match.matches) {
+        throw new ArgumentError("Internal Error: URI $uri doesn't match "
+            "$template: $uri");
+      }
+      childUri = match.rest;
+      print("children: $_children");
+      print("childUri $childUri");
+
+      for (var childName in _children.keys) {
+        if (_children[childName]._match(childUri).matches) {
+          newChildName = childName;
+          break;
+        }
+      }
+      // TODO: check URI is empty
+      useIndex = true;
+    }
+    if (useIndex) {
+      // TODO: should the index route be required to have no parameters?
+      newChildName = _indexRouteName;
+      childUri = uri;
+      parameters = {};
+    }
+    print("newChild: $newChildName");
+    var event = new RouteEvent._(this, childUri, parameters);
+    var leaveFuture =
+        (_currentChildName != null && newChildName != _currentChildName)
+            ? _currentChild._exit(childUri)
+            : new Future.value(true);
 
     return leaveFuture.then((allowLeave) {
       if (allowLeave) {
         _onEnterController.add(event);
         // TODO: wait for event navigate futures to complete
-        _currentChild = newChild;
-        return newChild == null ? true : newChild.enter(childUri);
+        _setCurrentChildName(newChildName);
+        return _currentChild == null
+            ? true : _currentChild._enter(childUri, asIndex: useIndex);
       } else {
         return false;
       }
     });
-
   }
 
-  Future<bool> exit(Uri uri) {
+  Future<bool> _exit(Uri uri) {
     var event = new RouteEvent._(this, null, null);
     _onExitController.add(event);
     if (event._allowNavigationFutures.isEmpty) {
@@ -138,6 +169,17 @@ class Route {
 //    var child = _children[name];
 //    return (path.length == 1) ? child : child._getRoute(path.sublist(1));
 //  }
+
+  String get uri => getUri();
+
+  void set uri(String u) {
+    print("set uri=$u");
+    var newUri = Uri.parse(u);
+    _enter(newUri).then((allowed) {
+      notifyPropertyChange(const Symbol('uri'), getUri(), newUri);
+      _router._navigate(newUri, null, true);
+    });
+  }
 
   String getUri({Map<String, String> parameters}) {
     String localUri = template.expand(parameters);

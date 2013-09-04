@@ -9,13 +9,14 @@
   <body>
     <h1>Polymer Hierarchical Demo</h1>
     <template id="main" bind>
-      <div>Section: <input value="{{ section }}">{{ section }}</div>
-      <div>Sections: {{ sections }}</div>
-      <div>Section Index: <input value="{{ sectionIndex }}">{{ sectionIndex }}</div>
-      <r-tab-panel selected-index="{{ sectionIndex }}">
+      <a href="/one">One</a>
+      <a href="/two">Two</a>
+      <div>Current URI: {{ router.root.uri }}</div>
+      <div>Section: {{ section }}</div>
+      <r-tab-panel selected-tab="{{ router.root.uri }}">
         <r-tabs>
-          <r-tab>Section One</r-tab>
-          <r-tab>Section Two</r-tab>
+          <r-tab name="/one">Section One</r-tab>
+          <r-tab name="/two">Section Two</r-tab>
         </r-tabs>
         <r-tab-panels>
           <section>
