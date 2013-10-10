@@ -99,6 +99,21 @@ class RouteHandle implements Route {
     }
     if (f != null)  return f();
   }
+
+  /// See [Route.isActive]
+  bool get isActive => _route.isActive;
+
+  /// See [Route.parameters]
+  Map get parameters => _route.parameters;
+
+  /// See [Route.path]
+  UrlMatcher get path => _route.path;
+
+  /// See [Route.name]
+  String get name => _route.name;
+
+  /// See [Route.parent]
+  Route get parent => _route.parent;
 }
 
 /**
