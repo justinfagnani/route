@@ -11,7 +11,7 @@ import 'mocks.dart';
 
 main() {
   useHtmlEnhancedConfiguration();
-  
+
   test('paths are routed to routes added with addRoute', () {
     Router router = new Router();
     router.root.addRoute(
@@ -531,6 +531,153 @@ main() {
       router.route('/123?foo.a=b&foo.b=&foo.c=foo%20bar&foo.=ignore');
     });
 
+    group('isActive', () {
+
+      test('should currectly identify active/inactive routes', () {
+        Router router = new Router();
+        router.root
+          ..addRoute(
+              name: 'foo',
+              path: '/foo',
+              mount: (child) => child
+                ..addRoute(
+                    name: 'bar',
+                    path: '/bar',
+                    mount: (child) => child
+                      ..addRoute(
+                          name: 'baz',
+                          path: '/baz',
+                          mount: (child) => child))
+                ..addRoute(
+                    name: 'qux',
+                    path: '/qux',
+                    mount: (child) => child
+                      ..addRoute(
+                          name: 'aux',
+                          path: '/aux',
+                          mount: (child) => child)));
+
+        expect(r(router, 'foo').isActive, false);
+        expect(r(router, 'foo.bar').isActive, false);
+        expect(r(router, 'foo.bar.baz').isActive, false);
+        expect(r(router, 'foo.qux').isActive, false);
+
+        return router.route('/foo').then((_) {
+          expect(r(router, 'foo').isActive, true);
+          expect(r(router, 'foo.bar').isActive, false);
+          expect(r(router, 'foo.bar.baz').isActive, false);
+          expect(r(router, 'foo.qux').isActive, false);
+
+          return router.route('/foo/qux').then((_) {
+            expect(r(router, 'foo').isActive, true);
+            expect(r(router, 'foo.bar').isActive, false);
+            expect(r(router, 'foo.bar.baz').isActive, false);
+            expect(r(router, 'foo.qux').isActive, true);
+
+            return router.route('/foo/bar/baz').then((_) {
+              expect(r(router, 'foo').isActive, true);
+              expect(r(router, 'foo.bar').isActive, true);
+              expect(r(router, 'foo.bar.baz').isActive, true);
+              expect(r(router, 'foo.qux').isActive, false);
+            });
+          });
+        });
+      });
+
+    });
+
+    group('parameters', () {
+
+      test('should return path parameters for routes', () {
+        Router router = new Router();
+        router.root
+          ..addRoute(
+              name: 'foo',
+              path: '/:foo',
+              mount: (child) => child
+                ..addRoute(
+                    name: 'bar',
+                    path: '/:bar',
+                    mount: (child) => child
+                      ..addRoute(
+                          name: 'baz',
+                          path: '/:baz',
+                          mount: (child) => child)));
+
+        expect(r(router, 'foo').parameters, isNull);
+        expect(r(router, 'foo.bar').parameters, isNull);
+        expect(r(router, 'foo.bar.baz').parameters, isNull);
+
+        return router.route('/aaa').then((_) {
+          expect(r(router, 'foo').parameters, {'foo': 'aaa'});
+          expect(r(router, 'foo.bar').parameters, isNull);
+          expect(r(router, 'foo.bar.baz').parameters, isNull);
+
+          return router.route('/aaa/bbb').then((_) {
+            expect(r(router, 'foo').parameters, {'foo': 'aaa'});
+            expect(r(router, 'foo.bar').parameters, {'bar': 'bbb'});
+            expect(r(router, 'foo.bar.baz').parameters, isNull);
+
+            return router.route('/aaa/bbb/ccc').then((_) {
+              expect(r(router, 'foo').parameters, {'foo': 'aaa'});
+              expect(r(router, 'foo.bar').parameters, {'bar': 'bbb'});
+              expect(r(router, 'foo.bar.baz').parameters, {'baz': 'ccc'});
+            });
+          });
+        });
+      });
+
+    });
+
+  });
+
+  group('activePath', () {
+
+    test('should currectly identify active path', () {
+      Router router = new Router();
+      router.root
+        ..addRoute(
+            name: 'foo',
+            path: '/foo',
+            mount: (child) => child
+            ..addRoute(
+                name: 'bar',
+                path: '/bar',
+                mount: (child) => child
+                ..addRoute(
+                    name: 'baz',
+                    path: '/baz',
+                    mount: (child) => child))
+            ..addRoute(
+                name: 'qux',
+                path: '/qux',
+                mount: (child) => child
+                ..addRoute(
+                    name: 'aux',
+                    path: '/aux',
+                    mount: (child) => child)));
+
+      var strPath = (List<Route> path) =>
+          path.map((Route r) => r.name).join('.');
+
+      expect(strPath(router.activePath), '');
+
+      return router.route('/foo').then((_) {
+        expect(strPath(router.activePath), 'foo');
+
+        return router.route('/foo/qux').then((_) {
+          expect(strPath(router.activePath), 'foo.qux');
+
+          return router.route('/foo/bar/baz').then((_) {
+            expect(strPath(router.activePath), 'foo.bar.baz');
+          });
+        });
+      });
+    });
+
   });
 
 }
+
+/// An alias for Router.root.getRoute(path)
+r(Router router, String path) => router.root.getRoute(path);
