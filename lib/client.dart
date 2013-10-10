@@ -253,6 +253,19 @@ class Route {
     _logger.finest('newHandle for $this');
     return new RouteHandle._new(this);
   }
+
+  /**
+   * Indicates whether this route is currently active. Root route is always
+   * active.
+   */
+  bool get isActive =>
+      parent == null ? true : identical(parent._currentRoute, this);
+
+  /**
+   * Returns parameters for the currently active route. If the route is not
+   * active the getter returns null.
+   */
+  Map get parameters => isActive ? new Map.from(_lastEvent.parameters) : null;
 }
 
 /**
@@ -290,7 +303,6 @@ class Router {
   final Window _window;
   final Route root;
   bool _listen = false;
-  String _lastRoute;
 
   /**
    * [useFragment] determines whether this Router uses pure paths with
@@ -459,7 +471,6 @@ class Router {
         base._currentRoute._lastEvent =
             new RouteEvent(match.match, match.parameters);
         newRoute._onRouteController.add(event);
-        _lastRoute = path;
         return route(match.tail, startingFrom: newRoute);
       }
       return false;
@@ -584,5 +595,19 @@ class Router {
         _window.history.pushState(null, title, path);
       }
     }
+  }
+
+  /**
+   * Returns the current active route path in the route tree.
+   * Excludes the root path.
+   */
+  List<Route> get activePath {
+    var res = <Route>[];
+    var current = root;
+    while (current._currentRoute != null) {
+      current = current._currentRoute;
+      res.add(current);
+    }
+    return res;
   }
 }
