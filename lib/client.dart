@@ -289,9 +289,10 @@ class Route {
 class RouteEvent {
   final String path;
   final Map parameters;
+  final Route route;
   var _allowLeaveFutures = <Future<bool>>[];
 
-  RouteEvent(this.path, this.parameters);
+  RouteEvent(this.path, this.parameters, this.route);
 
   /**
    * Can be called on leave with the future which will complete with a boolean
@@ -301,7 +302,7 @@ class RouteEvent {
     _allowLeaveFutures.add(allow);
   }
 
-  RouteEvent _clone() => new RouteEvent(path, parameters);
+  RouteEvent _clone() => new RouteEvent(path, parameters, route);
 }
 
 abstract class Routable {
@@ -367,7 +368,8 @@ class Router {
         return _processNewRoute(baseRoute, path, match, matchedRoute);
       } else {
         baseRoute._currentRoute._lastEvent =
-            new RouteEvent(match.match, match.parameters);
+            new RouteEvent(match.match, match.parameters,
+                baseRoute._currentRoute);
         return route(match.tail, startingFrom: matchedRoute);
       }
     }
@@ -477,14 +479,14 @@ class Router {
   Future<bool> _processNewRoute(Route base, String path, UrlMatch match,
       Route newRoute) {
     _logger.finest('_processNewRoute $path');
-    var event = new RouteEvent(match.match, match.parameters);
+    var event =
+        new RouteEvent(match.match, match.parameters, base._currentRoute);
     // before we make this a new current route, leave the old
     return _leaveCurrentRoute(base, event).then((bool allowNavigation) {
       if (allowNavigation) {
         _unsetAllCurrentRoutes(base);
         base._currentRoute = newRoute;
-        base._currentRoute._lastEvent =
-            new RouteEvent(match.match, match.parameters);
+        base._currentRoute._lastEvent = event;
         newRoute._onRouteController.add(event);
         return route(match.tail, startingFrom: newRoute);
       }
