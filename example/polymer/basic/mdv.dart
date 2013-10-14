@@ -3,7 +3,7 @@ library example;
 import 'dart:async';
 import 'dart:html';
 
-import 'package:fancy_syntax/syntax.dart';
+import 'package:polymer_expressions/polymer_expressions.dart';
 import 'package:logging/logging.dart';
 import 'package:polymer/polymer.dart';
 import 'package:route/client.dart';
@@ -57,7 +57,7 @@ main() {
     ..onRecord.listen((r) => print('[${r.level}] ${r.message}'));
 
   query('#main')
-    ..bindingDelegate = new FancySyntax()
+    ..bindingDelegate = new PolymerExpressions()
     ..model = app;
   app.router.listen();
 }
