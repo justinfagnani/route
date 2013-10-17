@@ -41,7 +41,7 @@ typedef Future<bool> Filter(HttpRequest request);
  *     import 'package:route/pattern.dart';
  *
  *     HttpServer.bind().then((server) {
- *       var router = new Router(server);
+ *       var router = new Router(server)
  *         ..filter(matchesAny(['/foo', '/bar']), authFilter)
  *         ..serve('/foo').listen(fooHandler)
  *         ..serve('/bar').listen(barHandler)
