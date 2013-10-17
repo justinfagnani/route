@@ -3,8 +3,7 @@ library example;
 import 'dart:html';
 
 import 'package:logging/logging.dart';
-import 'package:route/client.dart';
-import 'package:route/url_pattern.dart';
+import 'package:route_hierarchical/client.dart';
 
 main() {
   new Logger('')

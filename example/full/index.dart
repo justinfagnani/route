@@ -1,5 +1,5 @@
 import 'package:logging/logging.dart';
-import 'package:route/client.dart';
+import 'package:route_hierarchical/client.dart';
 
 Router router;
 String homeLink;

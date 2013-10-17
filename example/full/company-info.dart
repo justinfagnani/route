@@ -3,7 +3,7 @@ library companyinfo;
 import 'dart:async';
 import 'dart:html';
 
-import 'package:route/client.dart';
+import 'package:route_hierarchical/client.dart';
 import 'package:web_ui/web_ui.dart';
 
 import 'index.dart';

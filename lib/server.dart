@@ -11,8 +11,7 @@ library route.server;
 import 'dart:async';
 import 'dart:collection';
 import 'dart:io';
-import 'package:route/src/async_utils.dart';
-import 'url_pattern.dart';
+import 'package:route_hierarchical/src/async_utils.dart';
 export 'url_pattern.dart';
 import 'pattern.dart';
 
@@ -35,7 +34,7 @@ typedef Future<bool> Filter(HttpRequest request);
  * Requests not matched by a call to [serve] are sent to the [defaultStream].
  * If there's no subscriber to the defaultStream then a 404 is sent to the
  * response.
- * 
+ *
  * Example:
  *     import 'package:route/server.dart';
  *     import 'package:route/pattern.dart';
@@ -50,14 +49,14 @@ typedef Future<bool> Filter(HttpRequest request);
  */
 class Router {
   final Stream<HttpRequest> _incoming;
-  
+
   final List<_Route> _routes = <_Route>[];
-  
+
   final Map<Pattern, Filter> _filters = new LinkedHashMap<Pattern, Filter>();
-  
-  final StreamController<HttpRequest> _defaultController = 
+
+  final StreamController<HttpRequest> _defaultController =
       new StreamController<HttpRequest>();
-  
+
   /**
    * Create a new Router that listens to the [incoming] stream, usually an
    * instance of [HttpServer].
@@ -67,7 +66,7 @@ class Router {
   }
 
   /**
-   * Request whose URI matches [url] and [method] (if provided) are sent to the 
+   * Request whose URI matches [url] and [method] (if provided) are sent to the
    * stream created by this method, and not sent to any other router streams.
    */
   Stream<HttpRequest> serve(Pattern url, {String method}) {
@@ -75,7 +74,7 @@ class Router {
     _routes.add(new _Route(controller, url, method:method));
     return controller.stream;
   }
-  
+
   /**
    * A [Filter] returns a [Future<bool>] that tells the router whether to apply
    * the remaining filters and send requests to the streams created by [serve].
@@ -89,7 +88,7 @@ class Router {
   }
 
   Stream<HttpRequest> get defaultStream => _defaultController.stream;
-  
+
   void _handleRequest(HttpRequest req) {
     bool cont = true;
     doWhile(_filters.keys, (Pattern pattern) {
@@ -129,7 +128,7 @@ class _Route {
   final String method;
   final StreamController controller;
   _Route(this.controller, this.url, {this.method});
-  
-  bool matches(HttpRequest request) => matchesFull(url, request.uri.path) && 
+
+  bool matches(HttpRequest request) => matchesFull(url, request.uri.path) &&
       (method == null || request.method.toUpperCase() == method);
 }
