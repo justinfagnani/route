@@ -10,8 +10,8 @@ Installation
 Add this package to your pubspec.yaml file:
 
     dependencies:
-      route: any
-      
+      route_hierarchical: any
+
 Then, run `pub install` to download and link in the package.
 
 UrlMatcher
@@ -30,10 +30,10 @@ form /article/1234. It can matched by the following template:
 Client Routing
 --------------
 
-Router is a stateful object that contains routes and can perform URL routing 
+Router is a stateful object that contains routes and can perform URL routing
 on those routes.
 
-The `Router` can listen to `Window.onPopState` (or fallback to 
+The `Router` can listen to `Window.onPopState` (or fallback to
 Window.onHashChange in older browsers) events and invoke the correct
 handler so that the back button seamlessly works.
 
@@ -42,7 +42,7 @@ Example (client.dart):
 ```dart
 library client;
 
-import 'package:route/client.dart';
+import 'package:route_hierarchical/client.dart';
 
 main() {
   var router = new Router()
@@ -97,8 +97,8 @@ router.root
                      enter: editArticle)))
 ```
 
-The mount parameter takes either a function that accepts an instance of a new 
-child router as the only parameter, or an instance of an object that implements 
+The mount parameter takes either a function that accepts an instance of a new
+child router as the only parameter, or an instance of an object that implements
 Routable interface.
 
 ```dart
@@ -117,9 +117,9 @@ In either case, the child router is instantiated by the parent router an
 injected into the mount point, at which point child router can be configured
 with new routes.
 
-Routing with hierarchical router: when the parent router performs a prefix 
-match on the URL, it removes the matched part from the URL and invokes the 
-child router with the remaining tail. 
+Routing with hierarchical router: when the parent router performs a prefix
+match on the URL, it removes the matched part from the URL and invokes the
+child router with the remaining tail.
 
 For instance, with the above example lets consider this URL: `/user/jsmith/article/1234`.
 Route "user" will match `/user/jsmith` and invoke the child router with `/article/1234`.
@@ -143,7 +143,7 @@ router.go('user.article.edit', {
 );
 ```
 
-If "go" is invoked on child routers, the router can automatically reconstruct 
+If "go" is invoked on child routers, the router can automatically reconstruct
 and generate the new URL from the state in the parent routers.
 
 Server Routing
@@ -154,10 +154,10 @@ against `UrlPatterns`.
 
 ```dart
 import 'urls.dart';
-import 'package:route/server.dart';
+import 'package:route_hierarchical/server.dart';
 
-import 'package:route/server.dart';
-import 'package:route/pattern.dart';
+import 'package:route_hierarchical/server.dart';
+import 'package:route_hierarchical/pattern.dart';
 
 HttpServer.bind().then((server) {
   var router = new Router(server)
