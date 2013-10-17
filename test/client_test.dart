@@ -4,8 +4,8 @@ import 'dart:html';
 import 'package:unittest/unittest.dart';
 import 'package:unittest/mock.dart';
 import 'package:unittest/html_enhanced_config.dart';
-import 'package:route/client.dart';
-import 'package:route/url_pattern.dart';
+import 'package:route_hierarchical/client.dart';
+import 'package:route_hierarchical/url_pattern.dart';
 
 import 'mocks.dart';
 

@@ -1,8 +1,8 @@
 library url_template_test;
 
 import 'package:unittest/unittest.dart';
-import 'package:route/url_template.dart';
-import 'package:route/url_matcher.dart';
+import 'package:route_hierarchical/url_template.dart';
+import 'package:route_hierarchical/url_matcher.dart';
 
 main() {
   group('UrlTemplate', () {
