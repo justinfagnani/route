@@ -62,6 +62,7 @@ class RouteHandle implements Route {
   /// See [Route.getRoute]
   Route getRoute(String routePath) {
     Route r = _assertState(() => _getHost(_route).getRoute(routePath));
+    if (r == null) return null;
     var handle = r.newHandle();
     if (handle != null) {
       _childHandles.add(handle);
@@ -305,6 +306,25 @@ class RouteEvent {
   RouteEvent _clone() => new RouteEvent(path, parameters, route);
 }
 
+/**
+ * Event emitted when routing starts.
+ */
+class RouteStartEvent {
+
+  /**
+   * URI that was passed to [Router.route].
+   */
+  final String uri;
+
+  /**
+   * Future that completes to a boolean value of whether the routing was
+   * successful.
+   */
+  final Future<bool> completed;
+
+  RouteStartEvent._new(this.uri, this.completed);
+}
+
 abstract class Routable {
   void configureRoute(Route router);
 }
@@ -318,6 +338,8 @@ class Router {
   final bool _useFragment;
   final Window _window;
   final Route root;
+  final StreamController<RouteStartEvent> _onRouteStart =
+      new StreamController<RouteStartEvent>.broadcast(sync: true);
   bool _listen = false;
 
   /**
@@ -338,6 +360,11 @@ class Router {
         root = new Route._new();
 
   /**
+   * A stream of route calls.
+   */
+  Stream<RouteStartEvent> get onRouteStart => _onRouteStart.stream;
+
+  /**
    * Finds a matching [Route] added with [addRoute], parses the path
    * and invokes the associated callback.
    *
@@ -346,6 +373,12 @@ class Router {
    * window, such as [listen].
    */
   Future<bool> route(String path, {Route startingFrom}) {
+    var future = _route(path, startingFrom: startingFrom);
+    _onRouteStart.add(new RouteStartEvent._new(path, future));
+    return future;
+  }
+
+  Future<bool> _route(String path, {Route startingFrom}) {
     var baseRoute = startingFrom == null ? this.root : _dehandle(startingFrom);
     _logger.finest('route $path $baseRoute');
     Route matchedRoute;
@@ -370,7 +403,7 @@ class Router {
         baseRoute._currentRoute._lastEvent =
             new RouteEvent(match.match, match.parameters,
                 baseRoute._currentRoute);
-        return route(match.tail, startingFrom: matchedRoute);
+        return _route(match.tail, startingFrom: matchedRoute);
       }
     }
     return new Future.value(true);
@@ -479,8 +512,7 @@ class Router {
   Future<bool> _processNewRoute(Route base, String path, UrlMatch match,
       Route newRoute) {
     _logger.finest('_processNewRoute $path');
-    var event =
-        new RouteEvent(match.match, match.parameters, base._currentRoute);
+    var event = new RouteEvent(match.match, match.parameters, newRoute);
     // before we make this a new current route, leave the old
     return _leaveCurrentRoute(base, event).then((bool allowNavigation) {
       if (allowNavigation) {
@@ -488,7 +520,7 @@ class Router {
         base._currentRoute = newRoute;
         base._currentRoute._lastEvent = event;
         newRoute._onRouteController.add(event);
-        return route(match.tail, startingFrom: newRoute);
+        return _route(match.tail, startingFrom: newRoute);
       }
       return false;
     });
