@@ -89,8 +89,6 @@ against `UrlPatterns`.
 ```dart
 import 'urls.dart';
 import 'package:route/server.dart';
-
-import 'package:route/server.dart';
 import 'package:route/pattern.dart';
 
 HttpServer.bind().then((server) {
