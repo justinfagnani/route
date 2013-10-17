@@ -95,7 +95,8 @@ HttpServer.bind().then((server) {
   var router = new Router(server)
     ..filter(matchesAny(allUrls), authFilter)
     ..serve(homeUrl).listen(serverHome)
-    ..serve(articleUrl, method: 'GET').listen(serveArticle);
+    ..serve(articleUrl, method: 'GET').listen(serveArticle)
+    ..defaultStream.listen(serveNotFound);
 });
 
 Future<bool> authFilter(req) {
