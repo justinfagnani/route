@@ -42,10 +42,10 @@ typedef Future<bool> Filter(HttpRequest request);
  *
  *     HttpServer.bind().then((server) {
  *       var router = new Router(server);
- *       router.filter(matchesAny(['/foo', '/bar']), authFilter);
- *       router.serve('/foo').listen(fooHandler);
- *       router.serve('/bar').listen(barHandler);
- *       router.defaultStream.listen(send404);
+ *         ..filter(matchesAny(['/foo', '/bar']), authFilter)
+ *         ..serve('/foo').listen(fooHandler)
+ *         ..serve('/bar').listen(barHandler)
+ *         ..defaultStream.listen(send404);
  *     });
  */
 class Router {
