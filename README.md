@@ -110,7 +110,7 @@ Future<bool> authFilter(req) {
 }
 
 serveArcticle(req) {
-  var articleId = articleUrl.parse(req.path)[0];
+  var articleId = articleUrl.parse(req.uri.path)[0];
   // retrieve article data and respond
 }
 ```
@@ -118,7 +118,7 @@ serveArcticle(req) {
 Further Goals
 -------------
 
- * Integration with Web UI so that the changing of UI views can happen
+ * Integration with Polymer so that the changing of UI views can happen
    automatically.
  * Handling different HTTP methods to help implement REST APIs.
  * Automatic generation of REST URLs from a single URL pattern, similar to Ruby
