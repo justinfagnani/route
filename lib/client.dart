@@ -405,6 +405,14 @@ class Router {
                 baseRoute._currentRoute);
         return _route(match.tail, startingFrom: matchedRoute);
       }
+    } else if (baseRoute._currentRoute != null) {
+      var event = new RouteEvent('', {}, baseRoute);
+      return _leaveCurrentRoute(baseRoute, event).then((success) {
+        if (success) {
+          baseRoute._currentRoute = null;
+        }
+        return success;
+      });
     }
     return new Future.value(true);
   }
