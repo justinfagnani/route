@@ -7,6 +7,7 @@ library example.files;
 import 'dart:async';
 import 'dart:io';
 import 'package:route/server.dart';
+import 'package:path/path.dart';
 
 class ContentTypes {
   static final ContentType CSS =
@@ -40,7 +41,7 @@ class ContentTypes {
   static ContentType forExtension(String extension) => _extensions[extension];
 
   static ContentType forFile(File file) =>
-      _extensions[new Path(file.path).extension];
+      _extensions[extension(file.path)];
 }
 
 /**
@@ -80,16 +81,15 @@ Function serveFile(String path, {FileHandler fileHandler: sendFile}) =>
  */
 Function serveDirectory(String path, {String as,
     FileHandler fileHandler: sendFile}) {
-  var prefix = new Path((as == null) ? path : as);
-  var dirPath = new Path(path);
+  var prefix = rootPrefix((as == null) ? path : as);
 
   return (HttpRequest req) {
-    var reqPath = new Path(req.uri.path);
-    var relativePath = reqPath.relativeTo(prefix);
-    var filePath = dirPath.join(relativePath);
+    var reqPath = req.uri.path;
+    var relativePath = relative(reqPath, from:prefix);
+    var filePath = join(path, relativePath);
 
     // don't serve hidden files or allow ../ shenanigans
-    if (filePath.filename.startsWith('.') ||
+    if (basename(filePath).startsWith('.') ||
         reqPath.toString().contains('..')) {
       send404(req);
       return;

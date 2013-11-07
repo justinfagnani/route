@@ -13,8 +13,7 @@ main() {
   Logger.root.level = Level.FINEST;
   Logger.root.onRecord.listen((LogRecord r) { print(r.message); });
 
-  query('#warning').remove();
-  query('#one').classes.add('selected');
+  querySelector('#warning').remove();
 
   var router = new Router()
     ..addHandler(urls.one, showOne)
@@ -25,12 +24,10 @@ main() {
 
 void showOne(String path) {
   print("showOne");
-  query('#one').classes.add('selected');
-  query('#two').classes.remove('selected');
+  querySelector('#content').innerHtml = '<h2>One</h2>';
 }
 
 void showTwo(String path) {
   print("showTwo");
-  query('#one').classes.remove('selected');
-  query('#two').classes.add('selected');
+  querySelector('#content').innerHtml = '<h2>Two</h2>';
 }

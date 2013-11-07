@@ -13,15 +13,18 @@ import 'package:route/pattern.dart';
 import 'urls.dart' as urls;
 import 'files.dart';
 
+const HOST = '127.0.0.1';
+const PORT = 8080;
 main() {
   final allUrls = new RegExp('/(.*)');
 
-  HttpServer.bind('127.0.0.1', 8080).then((server) {
+  HttpServer.bind(HOST, PORT).then((server) {
     var router = new Router(server)
       ..filter(allUrls, logRequest)
       ..serve(matchAny([urls.one, urls.two, urls.home])).listen(f) //serveFile('client.html'))
       ..serve(allUrls).listen(serveDirectory('', as: '/'))
       ..defaultStream.listen(send404);
+    print('started server at http://$HOST:$PORT');
   });
 }
 
