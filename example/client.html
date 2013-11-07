@@ -11,14 +11,9 @@ BSD-style license that can be found in the LICENSE file.
     <title>example</title>
     <style>
       section {
-        display: none;
         width: 600px;
         height: 400px;
         border: solid 1px #888;
-      }
-
-      section.selected {
-        display: block;
       }
 
       #warning {
@@ -36,12 +31,7 @@ BSD-style license that can be found in the LICENSE file.
       <a href="/two" title="Section Two">Two</a>
     </nav>
 
-    <section id="one">
-      <h2>Section One</h2>
-    </section>
-    <section id="two">
-      <h2>Section Two</h2>
-    </section>
+    <section id="content"></section>
 
     <script type="application/dart" src="client.dart"></script>
     <script src="packages/browser/dart.js"></script>
