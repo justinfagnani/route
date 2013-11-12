@@ -7,7 +7,6 @@ import 'package:unittest/unittest.dart';
 import 'package:unittest/mock.dart';
 import 'package:route/server.dart';
 import 'dart:async';
-import 'dart:collection';
 import 'dart:io';
 
 class HttpRequestMock extends Mock implements HttpRequest {
@@ -16,6 +15,8 @@ class HttpRequestMock extends Mock implements HttpRequest {
   HttpResponseMock response = new HttpResponseMock();
 
   HttpRequestMock(this.uri, {this.method});
+
+  noSuchMethod(i) => super.noSuchMethod(i);
 }
 
 class HttpResponseMock extends Mock implements HttpResponse {
@@ -28,6 +29,8 @@ class HttpResponseMock extends Mock implements HttpResponse {
     }
     return new Future.value();
   }
+
+  noSuchMethod(i) => super.noSuchMethod(i);
 }
 
 main() {
