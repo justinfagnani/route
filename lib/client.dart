@@ -281,7 +281,13 @@ class Route {
    * Returns parameters for the currently active route. If the route is not
    * active the getter returns null.
    */
-  Map get parameters => isActive ? new Map.from(_lastEvent.parameters) : null;
+  Map get parameters {
+    if (isActive) {
+      if (_lastEvent == null) return {};
+      return new Map.from(_lastEvent.parameters);
+    }
+    return null;
+  }
 }
 
 /**
