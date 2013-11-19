@@ -1,6 +1,6 @@
 name:  route_hierarchical
 description:  A client + server routing library for Dart
-version: 0.4.8
+version: 0.4.9
 author: "Dart Authors <misc@dartlang.org>"
 homepage: https://github.com/dart-lang/route/tree/experimental_hierarchical
 
