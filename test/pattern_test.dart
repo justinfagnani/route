@@ -21,4 +21,4 @@ main() {
   });
 }
 
-String matchValue(Match m) => m.str.substring(m.start, m.end);
+String matchValue(Match m) => m.input.substring(m.start, m.end);
