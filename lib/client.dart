@@ -579,7 +579,7 @@ class Router {
         route(_normalizeHash(_window.location.hash)).then((allowed) {
           // if not allowed, we need to restore the browser location
           if (!allowed) {
-            _window.history.forward();
+            _window.history.back();
           }
         });
       });
@@ -590,7 +590,7 @@ class Router {
         route(path).then((allowed) {
           // if not allowed, we need to restore the browser location
           if (!allowed) {
-            _window.history.forward();
+            _window.history.back();
           }
         });
       });
