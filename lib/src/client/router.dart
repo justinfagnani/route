@@ -4,7 +4,6 @@
 
 part of route.client;
 
-
 /**
  * A [Router] provides an interface for controlling and listening to the
  * window location in a structured, hierarchical manner.
@@ -49,25 +48,16 @@ class Router {
     }
     _listen = true;
     _window.onPopState.listen((_) {
-      var path = '${_window.location.pathname}${_window.location.hash}';
-      var location = _window.location;
-      var uri = new Uri(
-//          scheme: location.protocol,
-          host: location.host,
-//          port: location.port,
-          path: location.pathname,
-          query: location.search,
-          fragment: location.hash);
-      root._enter(uri).then((allowed) {
+      var uri = uriFromLocation(_window.location);
+      root.enter(uri).then((allowed) {
         // if not allowed, we need to restore the browser location
         if (!allowed) _window.history.forward();
       });
     });
     if (!ignoreClick) {
-      _logger.finest('listen on win: $_window');
       _window.onClick.listen((html.Event e) {
         if (e.target is html.AnchorElement) {
-          var anchor = e.target;
+          html.AnchorElement anchor = e.target;
           if (anchor.host == _window.location.host) {
             _logger.finest('clicked ${anchor.pathname}${anchor.hash}');
             e.preventDefault();
@@ -76,9 +66,7 @@ class Router {
                 path: anchor.pathname,
                 query: anchor.search,
                 fragment: anchor.hash);
-            root._enter(uri).then((allowed) {
-              if (allowed) _navigate(uri, null, false);
-            });
+            navigate(uri);
           }
         }
       });
@@ -94,16 +82,16 @@ class Router {
    * On older browsers [Location.assign] is used instead with the fragment
    * version of the UrlPattern.
    */
-//  Future<bool> navigate(String url) {
-//    return route(url).then((success) {
-//      if (success) {
-//        _go(url, null, false);
-//      }
-//    });
-//  }
+  Future<bool> navigate(Uri uri, {String title, bool replace}) {
+    return root.enter(uri).then((allowed) {
+      if (allowed) _navigate(uri, title: title, replace: replace);
+      return allowed;
+    });
+  }
 
-  void _navigate(Uri uri, String title, bool replace) {
+  void _navigate(Uri uri, {String title, bool replace}) {
     title = (title == null) ? '' : title;
+    replace = (replace == null) ? false : replace;
     if (replace) {
       _window.history.replaceState(null, title, uri.toString());
     } else {

@@ -9,12 +9,15 @@
 library route.server;
 
 import 'dart:async';
-import 'dart:collection';
 import 'dart:io';
-import 'package:route/src/async_utils.dart';
-import 'src/pattern.dart';
 
-typedef Future<bool> Filter(HttpRequest request);
+import 'package:quiver/async.dart' show doWhileAsync;
+import 'package:uri/uri.dart';
+
+import 'src/server/request_matcher.dart';
+export 'src/server/request_matcher.dart' show RequestMatcher, matchAny;
+
+typedef Future<bool> RequestFilter(HttpRequest request);
 
 /**
  * A request router that makes it easier to handle [HttpRequest]s from an
@@ -51,7 +54,7 @@ class Router {
 
   final List<_Route> _routes = <_Route>[];
 
-  final Map<Pattern, Filter> _filters = new LinkedHashMap<Pattern, Filter>();
+  final List<_Filter> _filters = <_Filter>[];
 
   final StreamController<HttpRequest> _defaultController =
       new StreamController<HttpRequest>();
@@ -65,12 +68,20 @@ class Router {
   }
 
   /**
-   * Request whose URI matches [url] and [method] (if provided) are sent to the
-   * stream created by this method, and not sent to any other router streams.
+   * Request whose URI matches [matcher] and [method] (if provided) are sent to
+   * the stream created by this method, and not sent to any other router
+   * streams.
+   *
+   * [matcher] must either be a [Pattern], [UriPattern] or [RequestMatcher]. If
+   * [matcher] is a [Pattern] such as a [String] or [RegExp], incoming requests
+   * are matched by their URIs path, and [method] if given. If [matcher] is a
+   * [UriPattern] incoming requests are matched by their URI using
+   * [UriPattern.matches]. If [matcher] is a [RequestMatcher] it is invoked on
+   * incoming requests.
    */
-  Stream<HttpRequest> serve(Pattern url, {String method}) {
+  Stream<HttpRequest> serve(dynamic matcher, {String method}) {
     var controller = new StreamController<HttpRequest>();
-    _routes.add(new _Route(controller, url, method:method));
+    _routes.add(new _Route(controller, wrapMatcher(matcher, method: method)));
     return controller.stream;
   }
 
@@ -82,28 +93,24 @@ class Router {
    * then to the first matching server stream. If the filter returns false, it's
    * assumed that the filter is handling the request and it's not forwarded.
    */
-  void filter(Pattern url, Filter filter) {
-    _filters[url] = filter;
+  void filter(dynamic matcher, RequestFilter filter) {
+    _filters.add(new _Filter(wrapMatcher(matcher), filter));
   }
 
   Stream<HttpRequest> get defaultStream => _defaultController.stream;
 
   void _handleRequest(HttpRequest req) {
-    bool cont = true;
-    doWhile(_filters.keys, (Pattern pattern) {
-      if (matchesFull(pattern, req.uri.path)) {
-        return _filters[pattern](req).then((c) {
-          cont = c;
-          return c;
-        });
-      }
-      return new Future.value(true);
-    }).then((_) {
-      if (cont) {
+    bool _continue = true;
+    doWhileAsync(_filters, (_Filter filter) => filter.matches(req)
+        ? filter.filter(req).then((c) => _continue = c)
+        : new Future.value(true))
+    .then((_) {
+      if (_continue) {
         bool handled = false;
-        var matches = _routes.where((r) => r.matches(req));
-        if (!matches.isEmpty) {
-          matches.first.controller.add(req);
+        var route = _routes.firstWhere((r) => r.matches(req),
+            orElse: () => null);
+        if (route != null) {
+          route.controller.add(req);
         } else {
           if (_defaultController.hasListener) {
             _defaultController.add(req);
@@ -122,12 +129,20 @@ void send404(HttpRequest req) {
   req.response.close();
 }
 
-class _Route {
-  final Pattern url;
-  final String method;
-  final StreamController controller;
-  _Route(this.controller, this.url, {this.method});
+class _Filter {
+  final RequestMatcher matcher;
+  final RequestFilter filter;
 
-  bool matches(HttpRequest request) => matchesFull(url, request.uri.path) &&
-      (method == null || request.method.toUpperCase() == method);
+  _Filter(this.matcher, this.filter);
+
+  bool matches(HttpRequest request) => matcher(request);
+}
+
+class _Route {
+  final RequestMatcher matcher;
+  final StreamController controller;
+
+  _Route(this.controller, this.matcher);
+
+  bool matches(HttpRequest request) => matcher(request);
 }

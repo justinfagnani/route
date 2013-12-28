@@ -7,8 +7,10 @@ environment:
   sdk: '>=0.8.0'
 dependencies:
   logging: any
-  uri_template: '>=0.3.0'
+  uri: '>=0.8.0'
+  quiver: '>=0.17.0'
 dev_dependencies:
+  barback: any
   browser: any
   mdv: any
   observe: any

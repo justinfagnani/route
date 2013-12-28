@@ -8,7 +8,7 @@ import 'package:logging/logging.dart';
 import 'package:route/client.dart';
 import 'package:polymer/polymer.dart';
 
-class App extends ChangeNotifierBase {
+class App extends ChangeNotifier {
   List sections = ['one', 'two'];
 
   String _section;
@@ -16,8 +16,8 @@ class App extends ChangeNotifierBase {
   void set section(s) {
     print("section = $s");
     var oldIndex = sectionIndex;
-    notifyPropertyChange(const Symbol('sectionIndex'), oldIndex, sectionIndex);
-    _section = notifyPropertyChange(const Symbol('section'), _section, s);
+    notifyPropertyChange(#sectionIndex, oldIndex, sectionIndex);
+    _section = notifyPropertyChange(#section, _section, s);
   }
 
   String get sectionIndex => '${sections.indexOf(section)}';
@@ -32,7 +32,7 @@ class App extends ChangeNotifierBase {
   int _countdown;
   int get countdown => _countdown;
   void set countdown(c) {
-    _countdown = notifyPropertyChange(const Symbol('countdown'), _countdown, c);
+    _countdown = notifyPropertyChange(#countdown, _countdown, c);
   }
 
   Router _router;

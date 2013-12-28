@@ -10,6 +10,7 @@ class Switcher extends PolymerElement with ChangeNotifierMixin {
   }
 
   void selectChild(select) {
+    print("selectChild: $select");
     for (var c in this.children) {
       c.classes.toggle('selected', c.attributes['select-case'] == select);
     }

@@ -4,12 +4,23 @@
 
 part of route.client;
 
-Route route(template, {String defaultRoute, String index,
+/**
+ * Returns a new Route
+ */
+Route route(dynamic template, {String defaultRoute, String index,
     Map<String, Route> children}) {
-  print("route: $template");
-  if (template == null) throw new ArgumentError("null template B");
-  UriTemplate t = (template is String) ? new UriTemplate(template) : template;
-  return new Route._(t, index: index, defaultRouteName: defaultRoute);
+
+  print("route($template, defaultRoute: $defaultRoute)");
+
+  if (template == null) throw new ArgumentError("template is null");
+
+  UriPattern t = (template is String)
+      ? new UriParser(new UriTemplate(template))
+      : template;
+  var r = new Route._(t, index: index, defaultRouteName: defaultRoute);
+  if (children != null) r.addRoutes(children);
+//  print(r);
+  return r;
 }
 
 /**
@@ -19,44 +30,47 @@ Route route(template, {String defaultRoute, String index,
  * fires events when the application enters or leaves the state matched by the
  * route.
  */
-class Route extends ChangeNotifierBase {
+class Route extends ChangeNotifier {
 
-  final UriTemplate template;
-  final UriParser _parser;
+  final UriPattern template;
+//  final UriParser _parser;
   final StreamController<RouteEvent> _onEnterController;
   final StreamController<RouteEvent> _onExitController;
 
+  Map<String, Route> get children => _children;
   final Map<String, Route> _children = new LinkedHashMap<String, Route>();
   final String _indexRouteName;
+  final String _defaultRouteName;
 
   Route _parent;
   Router _router;
 
-  Route get _currentChild => _children[_currentChildName];
+  // state
+  Uri _currentUri;
+  Route _currentChild;
+  // parameters
 
-  String _currentChildName;
-  String get currentChildName => _currentChildName;
-  void _setCurrentChildName(c) {
-    // set route
-    print('_setCurrentChildName: $c');
-    _currentChildName = notifyPropertyChange(const Symbol('currentChildName'),
-        _currentChildName, c);
-  }
+  Route(UriPattern template, {String index, String defaultRouteName})
+      : this._(template, index: index, defaultRouteName: defaultRouteName);
 
-  Route._(UriTemplate template, {String index, String defaultRouteName})
+  Route._(UriPattern template, {String index, String defaultRouteName})
       : this.template = template,
-        _parser = new UriParser(template),
+//        _parser = new UriParser(template),
         _indexRouteName = index,
         _onEnterController =
             new StreamController<RouteEvent>.broadcast(sync: true),
         _onExitController =
-            new StreamController<RouteEvent>.broadcast(sync: true);
+            new StreamController<RouteEvent>.broadcast(sync: true),
+        _defaultRouteName = defaultRouteName;
 
   void addRoutes(Map<String, Route> children) => children.forEach(addRoute);
 
   void addRoute(String name, Route route) {
     if (_children.containsKey(name)) {
       throw new ArgumentError('Route with name "$name" already exists');
+    }
+    if (route.parent != null)  {
+      throw new ArgumentError('Route already has a parent');
     }
     _children[name] = route;
     route._parent = this;
@@ -69,11 +83,19 @@ class Route extends ChangeNotifierBase {
 
   Route get _indexRoute => _children[_indexRouteName];
 
-  UriMatch _match(Uri uri) => _parser.parsePrefix(uri);
+  UriMatch match(Uri uri) => template.match(uri); //_parser.parsePrefix(uri);
 
-  void _setCUrrentRoute() {
-
+  RouteMatch getChild(Uri uri) {
+    for (var name in _children.keys) {
+      var match = _children[name].match(uri);
+      if (match != null) {
+        return new RouteMatch(_children[name], name, match);
+      }
+    }
   }
+
+  Route get currentRoute => (_currentChild == null) ? this
+      : _currentChild.currentRoute;
 
   navigate(String routeName, {Map<String, String> parameters}) {
     var newRoute = _children[routeName];
@@ -82,76 +104,64 @@ class Route extends ChangeNotifierBase {
     }
     var newUri = Uri.parse(newRoute.template.expand(parameters));
     // TODO: push the new URI to the router / window URL bar
-    _enter(newUri).then((allowed) {
+    enter(newUri).then((allowed) {
       print("navigated");
-      _router._navigate(newUri, null, true);
+      // to do: propagate to parent
+      _router._navigate(newUri);
     });
   }
 
-  Future<bool> _enter(Uri uri, {bool asIndex: false}) {
+  /**
+   * Attempts to enter this route for [uri]. [uri] might be the remaining, or
+   * rest, part after parsing if this route is a child of of another route.
+   */
+  Future<bool> enter(Uri uri) {
     print("Route($template).enter($uri): _currentChild: $_currentChild");
 
-//    var leaveFuture;
-//    var event;
-    var newChildName;
-    var childUri;
-    var parameters;
-    bool useIndex = asIndex;
+    if (uri == null) throw new ArgumentError("uri is null");
+    var m = match(uri);
+    if (m == null) throw new ArgumentError("$uri doesn't match $template");
 
-    if (!asIndex) {
-      var match = _match(uri);
-      if (!match.matches) {
-        throw new ArgumentError("Internal Error: URI $uri doesn't match "
-            "$template: $uri");
-      }
-      childUri = match.rest;
-      print("children: $_children");
-      print("childUri $childUri");
+    var childUri = m.rest;
+    var parameters = {};
+    RouteMatch childMatch = getChild(childUri);
 
-      for (var childName in _children.keys) {
-        if (_children[childName]._match(childUri).matches) {
-          newChildName = childName;
-          break;
-        }
-      }
-      // TODO: check URI is empty
-      useIndex = true;
-    }
-    if (useIndex) {
-      // TODO: should the index route be required to have no parameters?
-      newChildName = _indexRouteName;
-      childUri = uri;
-      parameters = {};
-    }
-    print("newChild: $newChildName");
-    var event = new RouteEvent._(this, childUri, parameters);
-    var leaveFuture =
-        (_currentChildName != null && newChildName != _currentChildName)
-            ? _currentChild._exit(childUri)
+    // check if we're allowed to leave the current route
+    // start checking routes bottom up?
+    var leaveFuture = (
+        _currentChild != null
+        && childMatch != null
+        && childMatch.route != _currentChild)
+            ? _currentChild._exit()
             : new Future.value(true);
 
+    // check if we're allowed to enter the new route
     return leaveFuture.then((allowLeave) {
       if (allowLeave) {
-        _onEnterController.add(event);
-        // TODO: wait for event navigate futures to complete
-        _setCurrentChildName(newChildName);
-        return _currentChild == null
-            ? true : _currentChild._enter(childUri, asIndex: useIndex);
+        var enterEvent = new RouteEvent(this, uri, parameters);
+        _onEnterController.add(enterEvent);
+        return enterEvent.checkNavigationAllowed().then((allowEnter) {
+          if (allowEnter) {
+            if (childMatch != null && childMatch.route != null) {
+              return childMatch.route.enter(childUri).then((allow) {
+                if (allow) _currentChild = childMatch.route;
+                return allow;
+              });
+            }
+          }
+          return allowEnter;
+        });
       } else {
         return false;
       }
     });
+
   }
 
-  Future<bool> _exit(Uri uri) {
-    var event = new RouteEvent._(this, null, null);
+  Future<bool> _exit() {
+    var event = new RouteEvent(this, this._currentUri, {}, isExit: true);
     _onExitController.add(event);
-    if (event._allowNavigationFutures.isEmpty) {
-      return new Future.value(true);
-    } else {
-      return Future.wait(event._allowNavigationFutures)
-          .then((results) => results.every((allow) => allow == true));
-    }
+    return event.checkNavigationAllowed();
   }
 
 //  /**
@@ -175,31 +185,47 @@ class Route extends ChangeNotifierBase {
   void set uri(String u) {
     print("set uri=$u");
     var newUri = Uri.parse(u);
-    _enter(newUri).then((allowed) {
-      notifyPropertyChange(const Symbol('uri'), getUri(), newUri);
-      _router._navigate(newUri, null, true);
+    enter(newUri).then((allowed) {
+      notifyPropertyChange(#uri, getUri(), newUri);
+//      _router._navigate(newUri);
     });
   }
 
-  String getUri({Map<String, String> parameters}) {
-    String localUri = template.expand(parameters);
+  /**
+   * Returns a URI for this route expended with [parameters].
+   */
+  // TODO: return a Uri?
+  String getUri([Map<String, String> parameters]) {
+    var _parameters = {};
+    if (parameters != null ) _parameters.addAll(parameters);
+    if (_currentUri != null) _parameters.addAll(template.match(_currentUri).parameters);
+    String localUri = template.expand(_parameters).toString();
     if (_parent != null) {
-      var parentUri = _parent.getUri(parameters: parameters);
+      var parentUri = _parent.getUri(_parameters);
 //      return mergeUris(parentUri, localUri);
       return parentUri + localUri;
     }
     return localUri;
   }
 
-  /**
-   * Returns a URL for this route. The tail (url generated by the child path)
-   * will be passes to the UrlMatcher to be properly appended in the
-   * right place.
-   */
-  String expand({Map<String, String> parameters}) {
-    // TODO(justin): merge with parent expand
-    return template.expand(parameters);
-  }
+//  /**
+//   * Returns a URL for this route. The tail (url generated by the child path)
+//   * will be passes to the UrlMatcher to be properly appended in the
+//   * right place.
+//   */
+//  String expand({Map<String, String> parameters}) {
+//    // TODO(justin): merge with parent expand
+//    return template.expand(parameters);
+//  }
 
-  String toString() => "Route: $template";
+  String toString() => "Route{ template: $template,"
+      " defaultRouteName: $_defaultRouteName,"
+      " children: $_children}";
+}
+
+class RouteMatch {
+  final Route route;
+  final String name;
+  final UriMatch uriMatch;
+  RouteMatch(this.route, this.name, this.uriMatch);
 }

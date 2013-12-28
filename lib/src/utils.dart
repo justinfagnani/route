@@ -1,13 +1,8 @@
-library route.urils;
+// Copyright (c) 2013, the Dart project authors.  Please see the AUTHORS file
+// for details. All rights reserved. Use of this source code is governed by a
+// BSD-style license that can be found in the LICENSE file.
 
-Object firstWhere(Iterable i, bool predicate(e)) {
-  var matching = i.where(predicate);
-  return matching.isEmpty ? null : matching.first;
-}
-
-bool mapsEqual(Map a, Map b) =>
-    a.keys.length == b.keys.length &&
-    a.keys.every((k) => b.containsKey(k) && a[k] == b[k]);
+library route.utils;
 
 Uri mergeUris(Uri base, Uri merge) {
   var path = base.path + merge.path;
@@ -22,3 +17,4 @@ Uri mergeUris(Uri base, Uri merge) {
       queryParameters: queryParameters,
       fragment: base.fragment);
 }
+
