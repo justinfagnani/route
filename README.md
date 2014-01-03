@@ -45,7 +45,7 @@ library client;
 import 'package:route_hierarchical/client.dart';
 
 main() {
-  var router = new Router()
+  var router = new Router();
   router.root
     ..addRoute(name: 'article', path: '/article/:articleId', enter: showArticle)
     ..addRoute(name: 'home', defaultRoute: true, path: '/', enter: showHome);
