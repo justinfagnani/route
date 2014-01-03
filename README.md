@@ -155,8 +155,6 @@ against `UrlPatterns`.
 ```dart
 import 'urls.dart';
 import 'package:route_hierarchical/server.dart';
-
-import 'package:route_hierarchical/server.dart';
 import 'package:route_hierarchical/pattern.dart';
 
 HttpServer.bind().then((server) {
