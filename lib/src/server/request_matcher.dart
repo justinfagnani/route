@@ -12,9 +12,12 @@ import 'package:uri/uri.dart' show UriPattern;
 
 typedef bool RequestMatcher(HttpRequest request);
 
-RequestMatcher matchAny(Iterable<dynamic> matchers) {
+RequestMatcher matchAny(Iterable<dynamic> matchers, {
+    Iterable<dynamic> exclude}) {
   var _matchers = matchers.map(wrapMatcher);
-  return (HttpRequest request) => _matchers.any((m) => m(request));
+  var _exclude = exclude == null ? [] : exclude.map(wrapMatcher);
+  return (HttpRequest request) =>
+      _matchers.any((m) => m(request)) && !_exclude.any((e) => e(request));
 }
 
 RequestMatcher wrapMatcher(dynamic matcher, {String method}) {

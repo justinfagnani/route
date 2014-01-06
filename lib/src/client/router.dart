@@ -26,7 +26,7 @@ class Router {
    */
   Router(Map<String, Route> routes, {String index, bool useFragment,
       html.Window window})
-      : root = new Route._(new UriTemplate(''), index: index)
+      : root = new Route._(_uri(''), index: index)
             ..addRoutes(routes),
         _useFragment = (useFragment == null)
             ? !html.History.supportsState

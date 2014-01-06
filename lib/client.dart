@@ -20,6 +20,7 @@ import 'package:uri/uri.dart';
 
 import 'src/client/utils.dart';
 
+part 'src/client/navigation_event.dart';
 part 'src/client/route.dart';
 part 'src/client/route_event.dart';
 part 'src/client/router.dart';

@@ -10,18 +10,19 @@ part of route.client;
 Route route(dynamic template, {String defaultRoute, String index,
     Map<String, Route> children}) {
 
-  print("route($template, defaultRoute: $defaultRoute)");
+  _logger.fine("route($template, defaultRoute: $defaultRoute)");
 
   if (template == null) throw new ArgumentError("template is null");
 
-  UriPattern t = (template is String)
-      ? new UriParser(new UriTemplate(template))
-      : template;
+  UriPattern t = (template is String) ? _uri(template) : template;
   var r = new Route._(t, index: index, defaultRouteName: defaultRoute);
   if (children != null) r.addRoutes(children);
 //  print(r);
   return r;
 }
+
+UriPattern _uri(String s) =>
+    new UriParser(new UriTemplate(s));
 
 /**
  * Route is a node in the hierarchical tree of routes.

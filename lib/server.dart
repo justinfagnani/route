@@ -11,11 +11,14 @@ library route.server;
 import 'dart:async';
 import 'dart:io';
 
+import 'package:logging/logging.dart';
 import 'package:quiver/async.dart' show doWhileAsync;
 import 'package:uri/uri.dart';
 
 import 'src/server/request_matcher.dart';
 export 'src/server/request_matcher.dart' show RequestMatcher, matchAny;
+
+final Logger _logger = new Logger('route.server');
 
 typedef Future<bool> RequestFilter(HttpRequest request);
 
@@ -101,9 +104,13 @@ class Router {
 
   void _handleRequest(HttpRequest req) {
     bool _continue = true;
-    doWhileAsync(_filters, (_Filter filter) => filter.matches(req)
+    doWhileAsync(_filters, (_Filter filter) {
+      var matches = filter.matches(req)
         ? filter.filter(req).then((c) => _continue = c)
-        : new Future.value(true))
+        : new Future.value(true);
+      _logger.fine("filter $filter $matches");
+      return matches;
+    })
     .then((_) {
       if (_continue) {
         bool handled = false;
