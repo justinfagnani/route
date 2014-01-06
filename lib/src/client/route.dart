@@ -115,7 +115,7 @@ class Route extends ChangeNotifier {
    * Attempts to enter this route for [uri]. [uri] might be the remaining, or
    * rest, part after parsing if this route is a child of of another route.
    */
-  Future<bool> enter(Uri uri) {
+  Future<bool> enter(Uri uri, {Map<String, String> parameters}) {
     print("Route($template).enter($uri): _currentChild: $_currentChild");
 
     if (uri == null) throw new ArgumentError("uri is null");
@@ -123,7 +123,6 @@ class Route extends ChangeNotifier {
     if (m == null) throw new ArgumentError("$uri doesn't match $template");
 
     var childUri = m.rest;
-    var parameters = {};
     RouteMatch childMatch = getChild(childUri);
 
     // check if we're allowed to leave the current route
@@ -138,7 +137,8 @@ class Route extends ChangeNotifier {
     // check if we're allowed to enter the new route
     return leaveFuture.then((allowLeave) {
       if (allowLeave) {
-        var enterEvent = new RouteEvent(this, uri, parameters);
+        var localParameters = new Map.from(parameters)..addAll(m.parameters);
+        var enterEvent = new RouteEvent(this, uri, localParameters);
         _onEnterController.add(enterEvent);
         return enterEvent.checkNavigationAllowed().then((allowEnter) {
           if (allowEnter) {

@@ -15,6 +15,7 @@ import 'dart:collection' show LinkedHashMap;
 
 import 'package:logging/logging.dart';
 import 'package:observe/observe.dart';
+import 'package:quiver/core.dart' show firstNonNull;
 import 'package:uri/uri.dart';
 
 import 'src/client/utils.dart';
