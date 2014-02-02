@@ -568,7 +568,7 @@ class Router {
    * Listens for window history events and invokes the router. On older
    * browsers the hashChange event is used instead.
    */
-  void listen({bool ignoreClick: false}) {
+  void listen({bool ignoreClick: false, Element appRoot}) {
     _logger.finest('listen ignoreClick=$ignoreClick');
     if (_listen) {
       throw new StateError('listen can only be called once');
@@ -596,9 +596,11 @@ class Router {
       });
     }
     if (!ignoreClick) {
+      if (appRoot == null) {
+        appRoot = _window.document.documentElement;
+      }
       _logger.finest('listen on win');
-      _window.onClick.listen((Event e) {
-        if (e.target is AnchorElement) {
+      appRoot.onClick.listen((MouseEvent e) {
         if (!e.ctrlKey && !e.metaKey && !e.shiftKey && e.target is AnchorElement) {
           AnchorElement anchor = e.target;
           if (anchor.host == _window.location.host) {
