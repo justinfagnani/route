@@ -599,6 +599,7 @@ class Router {
       _logger.finest('listen on win');
       _window.onClick.listen((Event e) {
         if (e.target is AnchorElement) {
+        if (!e.ctrlKey && !e.metaKey && !e.shiftKey && e.target is AnchorElement) {
           AnchorElement anchor = e.target;
           if (anchor.host == _window.location.host) {
             _logger.finest('clicked ${anchor.pathname}${anchor.hash}');
