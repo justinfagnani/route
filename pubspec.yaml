@@ -10,6 +10,3 @@ dependencies:
   browser: any
   logging: any
   unittest: any
-
-dev_dependencies:
-  web_ui: any
