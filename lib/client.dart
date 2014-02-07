@@ -449,13 +449,12 @@ class Router {
     Route cmpBase = baseRoute;
     var tail = path;
     // Skip all routes that are unaffected by this path.
-    treePath = treePath.skipWhile((Route matchedRoute) {
-      var match = _getMatch(matchedRoute, tail);
-      var skip = cmpBase._currentRoute == matchedRoute &&
-          !_paramsChanged(cmpBase, match);
+    treePath = treePath.skipWhile((_Match matchedRoute) {
+      var skip = cmpBase._currentRoute == matchedRoute.route &&
+          !_paramsChanged(cmpBase, matchedRoute.urlMatch);
       if (skip) {
-        cmpBase = matchedRoute;
-        tail = match.tail;
+        cmpBase = matchedRoute.route;
+        tail = matchedRoute.urlMatch.tail;
       }
       return skip;
     });
@@ -473,33 +472,31 @@ class Router {
     });
   }
 
-  List<Future<bool>> _preEnter(String tail, Iterable<Route> treePath) {
+  List<Future<bool>> _preEnter(String tail, Iterable<_Match> treePath) {
     List<Future<bool>> preEnterFutures = <Future<bool>>[];
-    treePath.forEach((Route matchedRoute) {
-      var match = _getMatch(matchedRoute, tail);
-      tail = match.tail;
-      var preEnterEvent = new RoutePreEnterEvent(tail, match.parameters, matchedRoute);
-      matchedRoute._onPreEnterController.add(preEnterEvent);
+    treePath.forEach((_Match matchedRoute) {
+      tail = matchedRoute.urlMatch.tail;
+      var preEnterEvent = new RoutePreEnterEvent(tail, matchedRoute.urlMatch.parameters, matchedRoute.route);
+      matchedRoute.route._onPreEnterController.add(preEnterEvent);
       preEnterFutures.addAll(preEnterEvent._allowEnterFutures);
     });
     return preEnterFutures;
   }
 
-  Future<bool> _processNewRoute(Route startingFrom, Iterable<Route> treePath, String path) {
+  Future<bool> _processNewRoute(Route startingFrom, Iterable<_Match> treePath, String path) {
     return _leaveOldRoutes(startingFrom, treePath).then((bool allowed) {
       if (allowed) {
         var base = startingFrom;
         var tail = path;
-        treePath.forEach((Route matchedRoute) {
-          var match = _getMatch(matchedRoute, tail);
-          tail = match.tail;
-          var event =
-              new RouteEnterEvent(match.match, match.parameters, matchedRoute);
+        treePath.forEach((_Match matchedRoute) {
+          tail = matchedRoute.urlMatch.tail;
+          var event = new RouteEnterEvent(matchedRoute.urlMatch.match,
+              matchedRoute.urlMatch.parameters, matchedRoute.route);
           _unsetAllCurrentRoutes(base);
-          base._currentRoute = matchedRoute;
+          base._currentRoute = matchedRoute.route;
           base._currentRoute._lastEvent = event;
-          matchedRoute._onEnterController.add(event);
-          base = matchedRoute;
+          matchedRoute.route._onEnterController.add(event);
+          base = matchedRoute.route;
         });
         return true;
       }
@@ -507,7 +504,7 @@ class Router {
     });
   }
 
-  Future<bool> _leaveOldRoutes(Route startingFrom, Iterable<Route> treePath) {
+  Future<bool> _leaveOldRoutes(Route startingFrom, Iterable<_Match> treePath) {
     if (treePath.isEmpty) {
       return new Future.value(true);
     }
@@ -515,8 +512,8 @@ class Router {
     return _leaveCurrentRoute(startingFrom, event);
   }
 
-  Iterable<Route> _matchingTreePath(String path, Route baseRoute) {
-    List<Route> treePath = <Route>[];
+  Iterable<_Match> _matchingTreePath(String path, Route baseRoute) {
+    List<_Match> treePath = <_Match>[];
     Route matchedRoute;
     do {
       matchedRoute = null;
@@ -533,8 +530,8 @@ class Router {
         }
       }
       if (matchedRoute != null) {
-        treePath.add(matchedRoute);
         var match = _getMatch(matchedRoute, path);
+        treePath.add(new _Match(matchedRoute, match));
         baseRoute = matchedRoute;
         path = match.tail;
       }
@@ -773,4 +770,11 @@ class Router {
     }
     return res;
   }
+}
+
+class _Match {
+  final Route route;
+  final UrlMatch urlMatch;
+
+  _Match(this.route, this.urlMatch);
 }
