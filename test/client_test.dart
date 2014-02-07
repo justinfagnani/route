@@ -36,6 +36,8 @@ main() {
           path: parentPath,
           enter: expectAsync1((RouteEvent e) {
             expect(e.path, expectedParentPath);
+            expect(e.route, isNotNull);
+            expect(e.route.name, 'parent');
           }),
           mount: (Route child) {
             child.addRoute(

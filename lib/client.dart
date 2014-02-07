@@ -493,8 +493,8 @@ class Router {
         treePath.forEach((Route matchedRoute) {
           var match = _getMatch(matchedRoute, tail);
           tail = match.tail;
-          var event = new RouteEnterEvent(match.match, match.parameters,
-              base._currentRoute);
+          var event =
+              new RouteEnterEvent(match.match, match.parameters, matchedRoute);
           _unsetAllCurrentRoutes(base);
           base._currentRoute = matchedRoute;
           base._currentRoute._lastEvent = event;
