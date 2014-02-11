@@ -23,45 +23,43 @@ import 'package:route/client.dart';
 
 main() {
   test('URL is handled by the right handler', () {
-    var router = new Router();
     var url1 = new UrlPattern(r'/');
     var url2 = new UrlPattern(r'/foo/(\d+)');
     var testPath = '/foo/123';
 
-    router.addHandler(url1, (String path) {
-      fail('should not have been called');
-    });
-
-    router.addHandler(url2, (String path) {
-      expect(path, testPath);
-    });
-
-    router.handle(testPath);
+    new Router()
+        ..addHandler(url1, (String path) {
+          fail('should not have been called');
+        })
+        ..addHandler(url2, (String path) {
+          expect(path, testPath);
+        })
+        ..handle(testPath);
   });
 
   test('URL is handled by the right handler using fragments', () {
-    var router = new Router(useFragment: true);
     var url2 = new UrlPattern(r'/foo#(\d+)');
-
     var testPath = '/foo/123';
     var testPathFragment = '/foo#123';
 
-    router.addHandler(url2, (String path) {
-      // always expect the non-fragment path
-      expect(path, testPath);
-    });
-
-    router.handle(testPath);
-    router.handle(testPathFragment);
+    new Router(useFragment: true)
+        ..addHandler(url2, (String path) {
+          // always expect the non-fragment path
+          expect(path, testPath);
+        })
+        ..handle(testPath)
+        ..handle(testPathFragment);
   });
 
   test('click handler with fragment is routed when useFragment == true', () {
-    var router = new Router(useFragment: true);
     var urlWithFragment = new UrlPattern(r'(.*)#fragment');
-    router.addHandler(urlWithFragment, expectAsync1((String path) {
-      expect(path, predicate((p) => p.endsWith('#fragment')));
-    }));
-    router.listen();
+
+    new Router(useFragment: true)
+        ..addHandler(urlWithFragment, expectAsync1((String path) {
+          expect(path, predicate((p) => p.endsWith('fragment')));
+        }))
+        ..listen();
+
     query('#a_with_fragment').click();
   });
 
