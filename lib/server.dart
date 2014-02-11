@@ -123,10 +123,11 @@ void send404(HttpRequest req) {
 
 class _Route {
   final Pattern url;
-  final String method;
+  final String _method;
   final StreamController controller;
-  _Route(this.controller, this.url, {this.method});
+  _Route(this.controller, this.url, {String method})
+      : _method = method == null ? null : method.toUpperCase();
 
   bool matches(HttpRequest request) => matchesFull(url, request.uri.path) &&
-      (method == null || request.method.toUpperCase() == method);
+      (_method == null || request.method.toUpperCase() == _method);
 }

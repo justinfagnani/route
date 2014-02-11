@@ -28,17 +28,20 @@ class HttpResponseMock extends Mock implements HttpResponse {
 }
 
 main() {
-  test ('http method can be used to distinguish route', (){
+  test ('http method can be used to distinguish route (case insensitive)', (){
     var controller = new StreamController<HttpRequest>();
-    var testReq = new HttpRequestMock(Uri.parse('/foo'), method:'GET');
+    var getReq = new HttpRequestMock(Uri.parse('/foo'), method:'GET');
+    var postReq = new HttpRequestMock(Uri.parse('/foo'), method:'POST');
 
     new Router(controller.stream)
         ..serve('/foo', method:'GET').listen(expectAsync1((req) {
-          expect(req, testReq);
+          expect(req, getReq);
         }))
-        ..serve('/foo', method:'POST').listen(expectAsync1((_) {}, count:0));
+        ..serve('/foo', method:'PoST').listen(expectAsync1((req) {
+          expect(req, postReq);
+        }));
 
-    controller.add(testReq);
+    controller..add(getReq)..add(postReq);
   });
 
   test ('if no http method provided, all methods match', (){
