@@ -22,7 +22,7 @@ typedef void EventHandler(Event e);
  * and creating HTML event handlers that navigate to a URL.
  */
 class Router {
-  final LinkedHashMap<UrlPattern, Handler> _handlers;
+  final _handlers = <UrlPattern, Handler>{};
   final bool useFragment;
   bool _listen = false;
 
@@ -33,13 +33,12 @@ class Router {
    * [History.supportsState].
    */
   Router({bool useFragment})
-      : _handlers = new LinkedHashMap<UrlPattern, Handler>(),
-        useFragment = (useFragment == null)
+      : useFragment = (useFragment == null)
             ? !History.supportsState
             : useFragment;
 
   /**
-   * Registers a function that will be invoked when the router handles a URL
+   * Registers a [handler] that will be invoked when the router handles a URL
    * that matches [pattern].
    */
   void addHandler(UrlPattern pattern, Handler handler) {
@@ -49,9 +48,7 @@ class Router {
 
   UrlPattern _getUrl(path) {
     var matches = _handlers.keys.where((url) => url.matches(path));
-    if (matches.isEmpty) {
-      throw new ArgumentError("No handler found for $path");
-    }
+    if (matches.isEmpty) throw new ArgumentError("No handler found for $path");
     return matches.first;
   }
 
@@ -145,7 +142,7 @@ class Router {
   }
 
   void _go(String path, String title) {
-    title = (title == null) ? '' : title;
+    if (title == null) title = '';
     if (useFragment) {
       window.location.assign(path);
       (window.document as HtmlDocument).title = title;
