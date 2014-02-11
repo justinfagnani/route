@@ -35,29 +35,28 @@ typedef Future<bool> Filter(HttpRequest request);
  * Requests not matched by a call to [serve] are sent to the [defaultStream].
  * If there's no subscriber to the defaultStream then a 404 is sent to the
  * response.
- * 
+ *
  * Example:
  *     import 'package:route/server.dart';
  *     import 'package:route/pattern.dart';
  *
  *     HttpServer.bind().then((server) {
  *       var router = new Router(server)
- *         ..filter(matchesAny(['/foo', '/bar']), authFilter)
- *         ..serve('/foo').listen(fooHandler)
- *         ..serve('/bar').listen(barHandler)
- *         ..defaultStream.listen(send404);
+ *           ..filter(matchesAny(['/foo', '/bar']), authFilter)
+ *           ..serve('/foo').listen(fooHandler)
+ *           ..serve('/bar').listen(barHandler)
+ *           ..defaultStream.listen(send404);
  *     });
  */
 class Router {
   final Stream<HttpRequest> _incoming;
-  
-  final List<_Route> _routes = <_Route>[];
-  
-  final Map<Pattern, Filter> _filters = new LinkedHashMap<Pattern, Filter>();
-  
-  final StreamController<HttpRequest> _defaultController = 
-      new StreamController<HttpRequest>();
-  
+
+  final _routes = <_Route>[];
+
+  final _filters = <Pattern, Filter>{};
+
+  final _defaultController = new StreamController<HttpRequest>();
+
   /**
    * Create a new Router that listens to the [incoming] stream, usually an
    * instance of [HttpServer].
@@ -67,15 +66,15 @@ class Router {
   }
 
   /**
-   * Request whose URI matches [url] and [method] (if provided) are sent to the 
+   * Request whose URI matches [url] and [method] (if provided) are sent to the
    * stream created by this method, and not sent to any other router streams.
    */
   Stream<HttpRequest> serve(Pattern url, {String method}) {
     var controller = new StreamController<HttpRequest>();
-    _routes.add(new _Route(controller, url, method:method));
+    _routes.add(new _Route(controller, url, method: method));
     return controller.stream;
   }
-  
+
   /**
    * A [Filter] returns a [Future<bool>] that tells the router whether to apply
    * the remaining filters and send requests to the streams created by [serve].
@@ -89,15 +88,12 @@ class Router {
   }
 
   Stream<HttpRequest> get defaultStream => _defaultController.stream;
-  
+
   void _handleRequest(HttpRequest req) {
     bool cont = true;
     doWhile(_filters.keys, (Pattern pattern) {
       if (matchesFull(pattern, req.uri.path)) {
-        return _filters[pattern](req).then((c) {
-          cont = c;
-          return c;
-        });
+        return _filters[pattern](req).then((c) => cont = c);
       }
       return new Future.value(true);
     }).then((_) {
@@ -119,9 +115,10 @@ class Router {
 }
 
 void send404(HttpRequest req) {
-  req.response.statusCode = HttpStatus.NOT_FOUND;
-  req.response.write("Not Found");
-  req.response.close();
+  req.response
+      ..statusCode = HttpStatus.NOT_FOUND
+      ..write("Not Found")
+      ..close();
 }
 
 class _Route {
@@ -129,7 +126,7 @@ class _Route {
   final String method;
   final StreamController controller;
   _Route(this.controller, this.url, {this.method});
-  
-  bool matches(HttpRequest request) => matchesFull(url, request.uri.path) && 
+
+  bool matches(HttpRequest request) => matchesFull(url, request.uri.path) &&
       (method == null || request.method.toUpperCase() == method);
 }
