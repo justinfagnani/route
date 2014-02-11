@@ -7,7 +7,7 @@ library route.url_pattern;
 // From the PatternCharacter rule here:
 // http://ecma-international.org/ecma-262/5.1/#sec-15.10
 // removed '( and ')' since we'll never escape them when not in a group
-final _specialChars = new RegExp(r'[\^\$\.\|\+\[\]\{\}]');
+final _specialChars = new RegExp(r'[$.|+[\]{}^]');
 
 UrlPattern urlPattern(String p) => new UrlPattern(p);
 
@@ -51,7 +51,7 @@ UrlPattern urlPattern(String p) => new UrlPattern(p);
  *       server.addRequestHandler(matchesUrl(articleUrl), serveArticle);
  *     }
  *
- *     serveArcticle(req, res) {
+ *     serveArticle(req, res) {
  *       var articleId = articleUrl.parse(req.path)[0];
  *       // ...
  *     }
@@ -92,51 +92,43 @@ class UrlPattern implements Pattern {
 
   String reverse(Iterable args, {bool useFragment: false}) {
     var sb = new StringBuffer();
-    var chars = pattern.split('');
     var argsIter = args.iterator;
-
     int depth = 0;
     int groupCount = 0;
     bool escaped = false;
 
-    for (int i = 0; i < chars.length; i++) {
-      var c = chars[i];
+    for (int i = 0; i < pattern.length; i++) {
+      var c = pattern[i];
       if (c == '\\' && escaped == false) {
         escaped = true;
-      } else {
-        if (c == '(') {
-          if (escaped && depth == 0) {
-            sb.write(c);
-          }
-          if (!escaped) depth++;
-        } else if (c == ')') {
-          if (escaped && depth == 0) {
-            sb.write(c);
-          } else if (!escaped) {
-            if (depth == 0) throw new ArgumentError('unmatched parentheses');
-            depth--;
-            if (depth == 0) {
-              // append the nth arg
-              if (argsIter.moveNext()) {
-                sb.write(argsIter.current.toString());
-              } else {
-                throw new ArgumentError('more groups than args');
-              }
+        continue;
+      }
+
+      if (c == '(') {
+        if (escaped && depth == 0) sb.write(c);
+        if (!escaped) depth++;
+      } else if (c == ')') {
+        if (escaped && depth == 0) {
+          sb.write(c);
+        } else if (!escaped) {
+          if (depth == 0) throw new ArgumentError('unmatched parentheses');
+          depth--;
+          if (depth == 0) {
+            // append the nth arg
+            if (argsIter.moveNext()) {
+              sb.write(argsIter.current.toString());
+            } else {
+              throw new ArgumentError('more groups than args');
             }
           }
-        } else if (depth == 0) {
-          if (c == '#' && !useFragment) {
-            sb.write('/');
-          } else {
-            sb.write(c);
-          }
         }
-        escaped = false;
+      } else if (depth == 0) {
+          sb.write(c == '#' && !useFragment ? '/' : c);
       }
+      escaped = false;
     }
-    if (depth > 0) {
-      throw new ArgumentError('unclosed group');
-    }
+    if (depth > 0) throw new ArgumentError('unclosed group');
+
     return sb.toString();
   }
 
@@ -146,9 +138,8 @@ class UrlPattern implements Pattern {
    */
   List<String> parse(String path) {
     var match = regex.firstMatch(path);
-    if (match == null) {
-      throw new ArgumentError('no match for $path');
-    }
+    if (match == null) throw new ArgumentError('no match for $path');
+
     var result = <String>[];
     for (int i = 1; i <= match.groupCount; i++) {
       result.add(match[i]);
@@ -159,20 +150,17 @@ class UrlPattern implements Pattern {
   /**
    * Returns true if this pattern matches [path].
    */
-  bool matches(String str) => _matches(regex, str);
+  bool matches(String str) => _matchesFull(regex, str);
 
   Match matchAsPrefix(String string, [int start = 0]) =>
       regex.matchAsPrefix(string, start);
 
   // TODO(justinfagnani): file bug for similar method to be added to Pattern
-  bool _matches(Pattern p, String str) {
-    var iter = p.allMatches(str).iterator;
-    if (iter.moveNext()) {
-      var match = iter.current;
-      return (match.start == 0) && (match.end == str.length)
-          && (!iter.moveNext());
-    }
-    return false;
+  bool _matchesFull(Pattern p, String str) {
+    var matches = p.allMatches(str);
+    if (matches.length != 1) return false;
+    var match = matches.elementAt(0);
+    return (match.start == 0) && (match.end == str.length);
   }
 
   /**
@@ -185,17 +173,10 @@ class UrlPattern implements Pattern {
    * fragment to the server, so the server will have to handle just the path
    * part.
    */
-  bool matchesNonFragment(String str) {
-    if (!_hasFragment) {
-      return matches(str);
-    } else {
-      return _matches(_baseRegex, str);
-    }
-  }
+  bool matchesNonFragment(String str) =>
+      _hasFragment ? _matchesFull(_baseRegex, str) : matches(str);
 
-  Iterable<Match> allMatches(String str) {
-    return regex.allMatches(str);
-  }
+  Iterable<Match> allMatches(String str) => regex.allMatches(str);
 
   bool operator ==(other) =>
       (other is UrlPattern) && (other.pattern == pattern);
@@ -204,65 +185,75 @@ class UrlPattern implements Pattern {
 
   String toString() => pattern.toString();
 
-  _parse(String pattern) {
-    var sb = new StringBuffer();
+  void _parse(String pattern) {
+    var sb = new StringBuffer('^');
     int depth = 0;
     int lastGroupEnd = -2;
     bool escaped = false;
 
-    sb.write('^');
-    var chars = pattern.split('');
-    for (var i = 0; i < chars.length; i++) {
-      var c = chars[i];
+    for (var i = 0; i < pattern.length; i++) {
+      var c = pattern[i];
 
       if (depth == 0) {
         // outside of groups, transform the pattern to matches the literal
         if (c == r'\') {
-          if (escaped) {
-            sb.write(r'\\');
-          }
+          if (escaped) sb.write(r'\\');
           escaped = !escaped;
-        } else {
-          if (_specialChars.hasMatch(c)) {
-            sb.write('\\$c');
-          } else if (c == '(') {
-            if (escaped) {
-              sb.write(r'\(');
-            } else {
-              sb.write('(');
-              if (lastGroupEnd == i - 1) {
-                throw new ArgumentError('ambiguous adjecent top-level groups');
-              }
-              depth = 1;
-            }
-          } else if (c == ')') {
-            if (escaped) {
-              sb.write(r'\)');
-            } else {
-              throw new ArgumentError('unmatched parenthesis');
-            }
-          } else if (c == '#') {
-            _setBasePattern(sb.toString());
-            sb.write('[/#]');
-          } else {
-            sb.write(c);
-          }
-          escaped = false;
+          continue;
         }
+
+        if (_specialChars.hasMatch(c)) {
+          sb.write('\\$c');
+          continue;
+        }
+
+        if (c == '(') {
+          if (escaped) {
+            sb.write(r'\(');
+          } else {
+            sb.write('(');
+            if (lastGroupEnd == i - 1) {
+              throw new ArgumentError('ambiguous adjecent top-level groups');
+            }
+            depth = 1;
+          }
+          continue;
+        }
+
+        if (c == ')') {
+          if (escaped) {
+            sb.write(r'\)');
+          } else {
+            throw new ArgumentError('unmatched parenthesis');
+          }
+          continue;
+        }
+
+        if (c == '#') {
+          _setBasePattern(sb.toString());
+          sb.write('[/#]');
+          continue;
+        }
+
+        sb.write(c);
+        escaped = false;
       } else {
         // in a group, don't modify the pattern, but track escaping and depth
-        if (c == '(' && !escaped) {
-          depth++;
-        } else if (c == ')' && !escaped) {
-          depth--;
-          if (depth < 0) throw new ArgumentError('unmatched parenthesis');
-          if (depth == 0) {
-            lastGroupEnd = i;
+        if (!escaped) {
+          if (c == '(') {
+            depth++;
+          } else if (c == ')') {
+            depth--;
+            if (depth < 0) throw new ArgumentError('unmatched parenthesis');
+            if (depth == 0) lastGroupEnd = i;
           }
-        } else if (c == '#') {
+        }
+
+        if (c == '#') {
           // TODO(justinfagnani): what else should be banned in groups? '/'?
           throw new ArgumentError('illegal # inside group');
         }
+
         escaped = (c == r'\' && !escaped);
         sb.write(c);
       }
@@ -272,9 +263,7 @@ class UrlPattern implements Pattern {
   }
 
   _setBasePattern(String basePattern) {
-    if (_hasFragment == true) {
-      throw new ArgumentError('multiple # characters');
-    }
+    if (_hasFragment == true) throw new ArgumentError('multiple # characters');
     _hasFragment = true;
     _baseRegex = new RegExp('$basePattern\$');
   }
