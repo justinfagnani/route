@@ -1,4 +1,4 @@
-// Copyright (c) 2013, the Dart project authors.  Please see the AUTHORS file
+// Copyright (c) 2014, the Dart project authors.  Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
@@ -16,16 +16,16 @@ import 'files.dart';
 main() {
   final allUrls = new RegExp('/(.*)');
 
-  HttpServer.bind('127.0.0.1', 8080).then((server) {
-    var router = new Router(server)
-      ..filter(allUrls, logRequest)
-      ..serve(matchAny([urls.one, urls.two, urls.home])).listen(f) //serveFile('client.html'))
-      ..serve(allUrls).listen(serveDirectory('', as: '/'))
-      ..defaultStream.listen(send404);
+  HttpServer.bind('127.0.0.1', 8090).then((server) {
+    new Router(server)
+        ..filter(allUrls, logRequest)
+        ..serve(matchAny([urls.one, urls.two, urls.home])).listen(f)
+        ..serve(allUrls).listen(serveDirectory('', as: '/'))
+        ..defaultStream.listen(send404);
   });
 }
 
-f(HttpRequest req) {
+Function f(HttpRequest req) {
   print("${req.uri.path}");
   return serveFile('client.html')(req);
 }
