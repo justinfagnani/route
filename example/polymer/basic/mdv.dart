@@ -1,39 +1,64 @@
 library example;
 
 import 'dart:async';
-import 'dart:html';
+import 'dart:html' hide Navigator;
 
-import 'package:polymer_expressions/polymer_expressions.dart';
 import 'package:logging/logging.dart';
 import 'package:polymer/polymer.dart';
+import 'package:polymer_expressions/polymer_expressions.dart';
 import 'package:route/client.dart';
+import 'package:template_binding/template_binding.dart';
 
-class App extends ChangeNotifierBase {
+@CustomTag('route-app')
+class App extends PolymerElement with Navigator {
   String _section;
   String get section => _section;
   void set section(s) {
-    _section = notifyPropertyChange(const Symbol('section'), _section, s);
+    _section = notifyPropertyChange(#section, _section, s);
   }
 
   int _countdown;
   int get countdown => _countdown;
   void set countdown(c) {
-    _countdown = notifyPropertyChange(const Symbol('countdown'), _countdown, c);
+    _countdown = notifyPropertyChange(#countdown, _countdown, c);
   }
 
-  Router _router;
-  Router get router => _router;
+  final Router router;
 
-  App() {
-    _router = new Router({
-      'one': route('/one')
-          ..onEnter.listen((e) => section = 'one'),
-      'two': route('/two')
-          ..onEnter.listen((e) => section = 'two')
-          ..onExit.listen(hideTwo),
-      'catchAll': route('/{a}')
-          ..onEnter.listen((e) => e.route.parent.navigate('one')),
-    }, index: 'one');
+  App.created()
+      : super.created(),
+      router = new Router({
+        'one': route('/one'),
+        'two': route('/two'),
+        'catchAll': route('/')
+      }, index: 'one') {
+
+    print("App.created");
+
+    initNavigator();
+
+    router
+      ..['one'].onEnter.listen((e) {
+        print('one onEnter');
+        section = 'one';
+      })
+      ..['two'].onEnter.listen((e) {
+        print('two onEnter');
+        section = 'two';
+      })
+      ..['two'].onExit.listen(hideTwo)
+      ..['catchAll'].onEnter.listen((e) {
+        print('catchAll onEnter');
+        router.navigate(Uri.parse('/one'));
+      });
+
+    router.listen();
+    print("one: ${router['one'].getUri()}");
+    print("two: ${router['two'].getUri()}");
+  }
+
+  enteredView() {
+    print("App.enteredView");
   }
 
   void hideTwo(RouteEvent e) {
@@ -49,15 +74,10 @@ class App extends ChangeNotifierBase {
   }
 }
 
-var app = new App()..section = 'one';
-
 main() {
   new Logger('')
     ..level = Level.FINEST
     ..onRecord.listen((r) => print('[${r.level}] ${r.message}'));
 
-  query('#main')
-    ..bindingDelegate = new PolymerExpressions()
-    ..model = app;
-  app.router.listen();
+  initPolymer();
 }

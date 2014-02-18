@@ -4,6 +4,9 @@ Route
 Route is a client + server routing library for Dart that helps make building
 single-page web apps and using `HttpServer` easier.
 
+In a complex single-page app, users navigate through various views and states of
+the application. 
+
 Installation
 ------------
 
@@ -14,21 +17,10 @@ Add this package to your pubspec.yaml file:
       
 Then, run `pub install` to download and link in the package.
 
-UrlMatcher
-----------
-Route is built around `UrlMatcher`, an interface that defines URL template
-parsing, matching and reversing.
-
-
-UrlTemplate
------------
-The default implementation of the `UrlMatcher` is `UrlTemplate`. As an example,
-consider a blog with a home page and an article page. The article URL has the
-form /article/1234. It can matched by the following template:
-`/article/:articleId`.
-
-Client Routing
+Client-side Routing
 --------------
+
+The two
 
 Router is a stateful object that contains routes and can perform URL routing 
 on those routes.

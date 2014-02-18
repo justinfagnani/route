@@ -11,3 +11,16 @@ const String NAVIGATE = 'navigate';
  */
 createNavigationEvent(String href) =>
     new html.CustomEvent(NAVIGATE, detail: {'href': href});
+
+abstract class Navigator implements html.Element {
+
+  initNavigator() {
+    this.shadowRoot.on['click'].listen((html.MouseEvent e) {
+      var target = e.target;
+      if (target is html.AnchorElement) {
+        e.preventDefault();
+        this.dispatchEvent(createNavigationEvent(target.href));
+      }
+    });
+  }
+}

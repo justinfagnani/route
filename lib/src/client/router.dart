@@ -37,12 +37,15 @@ class Router {
 
   Route operator [](String name) => root._children[name];
 
+  String toString() => 'Router';
+
   /**
    * Listens for window history events and invokes the router. On older
    * browsers the hashChange event is used instead.
    */
+  // TODO: add element to listen on
   void listen({bool ignoreClick: false}) {
-    _logger.finest('listen ignoreClick=$ignoreClick');
+    _logger.fine('listen ignoreClick=$ignoreClick');
     if (_listen) {
       throw new StateError('listen can only be called once');
     }
@@ -55,6 +58,11 @@ class Router {
       });
     });
     if (!ignoreClick) {
+      _window.on[NAVIGATE].listen((html.CustomEvent e) {
+        print("navigate: ${e.detail}");
+        navigate(Uri.parse(e.detail['href']));
+      });
+      // This only works with light DOM
       _window.onClick.listen((html.Event e) {
         if (e.target is html.AnchorElement) {
           html.AnchorElement anchor = e.target;
@@ -95,6 +103,7 @@ class Router {
     if (replace) {
       _window.history.replaceState(null, title, uri.toString());
     } else {
+      print("push!");
       _window.history.pushState(null, title, uri.toString());
     }
   }

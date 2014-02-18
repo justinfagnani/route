@@ -51,8 +51,8 @@ class Route extends ChangeNotifier {
   Route _currentChild;
   // parameters
 
-  Route(UriPattern template, {String index, String defaultRouteName})
-      : this._(template, index: index, defaultRouteName: defaultRouteName);
+  Route(template, {String index, String defaultRouteName})
+      : this._(_uri(template), index: index, defaultRouteName: defaultRouteName);
 
   Route._(UriPattern template, {String index, String defaultRouteName})
       : this.template = template,
@@ -138,7 +138,8 @@ class Route extends ChangeNotifier {
     // check if we're allowed to enter the new route
     return leaveFuture.then((allowLeave) {
       if (allowLeave) {
-        var localParameters = new Map.from(parameters)..addAll(m.parameters);
+        var localParameters = parameters == null ? {} : new Map.from(parameters);
+        localParameters.addAll(m.parameters);
         var enterEvent = new RouteEvent(this, uri, localParameters);
         _onEnterController.add(enterEvent);
         return enterEvent.checkNavigationAllowed().then((allowEnter) {

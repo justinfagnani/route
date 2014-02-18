@@ -11,27 +11,31 @@
     <link rel="import" href="../components/switcher.html">
   </head>
   <body>
-    <h1>MDV Demo</h1>
-    <template id="main" bind>
-      <nav>
-        <a href="{{ router['one'].getUri() }}" title="Section One">One</a>
-        <a href="{{ router['two'].getUri() }}" title="Section Two">Two</a>
-      </nav>
-      <r-switcher select-on="{{ section }}">
-        <section select-case="one">
-          <h2>Section One</h2>
-        </section>
-        <section select-case="two">
-          <h2>Section Two</h2>
-          To demonstrate allowing navigation based on Futures, Section Two
-          will take 5 seconds to hide when navigated away from.
-          <template if="{{ countdown > 0 }}">
-            <div>Section Two will hide in {{ countdown }} seconds.</div>
-          </template>
-        </section>
-      </r-switcher>
-    </template>
+    <polymer-element name="route-app">
+      <template>
+        <h1>MDV Demo</h1>
+        <div>section: {{ section }}</div>
+        <nav>
+          <a href="{{ router['one'].getUri() }}" title="Section One">One</a>
+          <a href="{{ router['two'].getUri() }}" title="Section Two">Two</a>
+        </nav>
+        <r-switcher selectOn="{{ section }}">
+          <section select-case="one">
+            <h2>Section One</h2>
+          </section>
+          <section select-case="two">
+            <h2>Section Two</h2>
+            To demonstrate allowing navigation based on Futures, Section Two
+            will take 5 seconds to hide when navigated away from.
+            <template if="{{ countdown > 0 }}">
+              <div>Section Two will hide in {{ countdown }} seconds.</div>
+            </template>
+          </section>
+        </r-switcher>
+      </template>
+    </polymer-element>
+    <route-app></route-app>
     <script type="application/dart" src="mdv.dart"></script>
-    <script src="packages/polymer/boot.js"></script>
+    <script src="packages/browser/dart.js"></script>
   </body>
 </html>

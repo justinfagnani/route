@@ -17,3 +17,7 @@ dev_dependencies:
   unittest: any
   polymer: any
   polymer_expressions: any
+  polymer_ui_elements: any
+dependency_overrides:
+  uri:
+    path: /Users/justinfagnani/Documents/Projects/uri
