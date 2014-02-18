@@ -11,8 +11,8 @@ Add this package to your pubspec.yaml file:
 
     dependencies:
       route: any
-      
-Then, run `pub install` to download and link in the package.
+
+Then, run `pub get` to download and link in the package.
 
 UrlPattern
 ----------
@@ -64,9 +64,9 @@ import 'package:route/client.dart';
 
 main() {
   var router = new Router()
-    ..addHandler(homeUrl, showHome)
-    ..addHandler(articleUrl, showArticle)
-    ..listen();
+      ..addHandler(homeUrl, showHome)
+      ..addHandler(articleUrl, showArticle)
+      ..listen();
 }
 
 void showHome(String path) {
@@ -93,23 +93,21 @@ import 'package:route/pattern.dart';
 
 HttpServer.bind().then((server) {
   var router = new Router(server)
-    ..filter(matchesAny(allUrls), authFilter)
-    ..serve(homeUrl).listen(serverHome)
-    ..serve(articleUrl, method: 'GET').listen(serveArticle)
-    ..defaultStream.listen(serveNotFound);
+      ..filter(matchesAny(allUrls), authFilter)
+      ..serve(homeUrl).listen(serverHome)
+      ..serve(articleUrl, method: 'GET').listen(serveArticle)
+      ..defaultStream.listen(serveNotFound);
 });
 
 Future<bool> authFilter(req) {
   return getUser(getUserIdCookie(req)).then((user) {
-    if (user != null) {
-      return true;
-    }
+    if (user != null) return true;
     redirectToLoginPage(req);
     return false;
   });
 }
 
-serveArcticle(req) {
+serveArticle(req) {
   var articleId = articleUrl.parse(req.uri.path)[0];
   // retrieve article data and respond
 }
