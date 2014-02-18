@@ -34,12 +34,12 @@ UriPattern _uri(String s) =>
 class Route extends ChangeNotifier {
 
   final UriPattern template;
-//  final UriParser _parser;
   final StreamController<RouteEvent> _onEnterController;
   final StreamController<RouteEvent> _onExitController;
 
   Map<String, Route> get children => _children;
   final Map<String, Route> _children = new LinkedHashMap<String, Route>();
+
   final String _indexRouteName;
   final String _defaultRouteName;
 

@@ -53,8 +53,6 @@ class App extends PolymerElement with Navigator {
       });
 
     router.listen();
-    print("one: ${router['one'].getUri()}");
-    print("two: ${router['two'].getUri()}");
   }
 
   enteredView() {

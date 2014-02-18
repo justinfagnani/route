@@ -12,6 +12,9 @@ const String NAVIGATE = 'navigate';
 createNavigationEvent(String href) =>
     new html.CustomEvent(NAVIGATE, detail: {'href': href});
 
+/**
+ * A mixin to capture click events and fire navigation events.
+ */
 abstract class Navigator implements html.Element {
 
   initNavigator() {
