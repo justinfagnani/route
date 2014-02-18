@@ -1,6 +1,15 @@
 Route
 =====
 
+Pardon The Dust
+---------------
+
+This is a working branch for a new version of route. This README is severely
+out of date.
+
+Overview
+--------
+
 Route is a client + server routing library for Dart that helps make building
 single-page web apps and using `HttpServer` easier.
 
