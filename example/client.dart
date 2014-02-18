@@ -10,17 +10,18 @@ import 'package:logging/logging.dart';
 import 'urls.dart' as urls;
 
 main() {
-  Logger.root.level = Level.FINEST;
-  Logger.root.onRecord.listen((LogRecord r) { print(r.message); });
+  Logger.root
+      ..level = Level.FINEST
+      ..onRecord.listen((LogRecord r) { print(r.message); });
 
   querySelector('#warning').remove();
   querySelector('#one').classes.add('selected');
 
-  var router = new Router()
-    ..addHandler(urls.one, showOne)
-    ..addHandler(urls.two, showTwo)
-    ..addHandler(urls.home, (_) => null)
-    ..listen();
+  new Router()
+      ..addHandler(urls.one, showOne)
+      ..addHandler(urls.two, showTwo)
+      ..addHandler(urls.home, (_) => null)
+      ..listen();
 }
 
 void showOne(String path) {

@@ -10,22 +10,15 @@ import 'package:route/server.dart';
 import 'package:path/path.dart' as path;
 
 class ContentTypes {
-  static final ContentType CSS =
-      ContentType.parse("text/css");
-  static final ContentType DART =
-      ContentType.parse("application/dart");
-  static final ContentType HTML =
-      ContentType.parse("text/html; charset=UTF-8");
-  static final ContentType JAVASCRIPT =
-      ContentType.parse("application/javascript");
-  static final ContentType JPEG =
-      ContentType.parse("image/jpeg");
-  static final ContentType JSON =
-      ContentType.parse("application/json");
-  static final ContentType TEXT =
-      ContentType.parse("text/plain");
+  static final CSS = ContentType.parse("text/css");
+  static final DART = ContentType.parse("application/dart");
+  static final HTML = ContentType.parse("text/html; charset=UTF-8");
+  static final JAVASCRIPT = ContentType.parse("application/javascript");
+  static final JPEG = ContentType.parse("image/jpeg");
+  static final JSON = ContentType.parse("application/json");
+  static final TEXT = ContentType.parse("text/plain");
 
-  static final Map<String, ContentType> _extensions = {
+  static final _extensions = <String, ContentType>{
     'css': CSS,
     'dart': DART,
     'html': HTML,
@@ -61,7 +54,7 @@ typedef void FileHandler(HttpRequest request, String path);
  *     router.serve('/').listen(serveFile('web/index.html');
  */
 Function serveFile(String path, {FileHandler fileHandler: sendFile}) =>
-  (HttpRequest req) => fileHandler(req, path);
+    (HttpRequest req) => fileHandler(req, path);
 
 /**
  * Returns a request handler that serves local files from a directory located at
@@ -89,8 +82,7 @@ Function serveDirectory(String dirPath, {String as,
     var filePath = path.join(dirPath, relativePath);
 
     // don't serve hidden files or allow ../ shenanigans
-    if (filePath.startsWith('.') ||
-        reqPath.toString().contains('..')) {
+    if (filePath.startsWith('.') || reqPath.toString().contains('..')) {
       send404(req);
       return;
     }
@@ -108,10 +100,10 @@ void sendFile(HttpRequest req, String path) {
         int length = args[0];
         DateTime lastModified = args[1];
         response
-          ..statusCode = 200
-          ..headers.contentType = ContentTypes.forFile(file)
-          ..headers.contentLength = length
-          ..headers.add(HttpHeaders.LAST_MODIFIED, lastModified);
+            ..statusCode = HttpStatus.OK
+            ..headers.contentType = ContentTypes.forFile(file)
+            ..headers.contentLength = length
+            ..headers.add(HttpHeaders.LAST_MODIFIED, lastModified);
         file.openRead().pipe(req.response).then((_) => response.close());
       });
     } else {
