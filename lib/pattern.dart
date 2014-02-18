@@ -1,4 +1,4 @@
-// Copyright (c) 2013, the Dart project authors.  Please see the AUTHORS file
+// Copyright (c) 2014, the Dart project authors.  Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
@@ -17,25 +17,22 @@ class _MultiPattern extends Pattern {
   final Iterable<Pattern> include;
   final Iterable<Pattern> exclude;
 
-  _MultiPattern(Iterable<Pattern> this.include,
-      {Iterable<Pattern> this.exclude});
+  _MultiPattern(this.include, {this.exclude});
 
   Iterable<Match> allMatches(String str) {
     var _allMatches = [];
     for (var pattern in include) {
       var matches = pattern.allMatches(str);
-      if (_hasMatch(matches)) {
+      if (matches.isNotEmpty) {
         if (exclude != null) {
           for (var excludePattern in exclude) {
-            if (_hasMatch(excludePattern.allMatches(str))) {
-              return [];
-            }
+            if (excludePattern.allMatches(str).isNotEmpty) return [];
           }
         }
-        _allMatches.add(matches);
+        _allMatches.addAll(matches);
       }
     }
-    return _allMatches.expand((x) => x);
+    return _allMatches;
   }
 
   Match matchAsPrefix(String str, [int start = 0]) {
@@ -57,14 +54,8 @@ Pattern matchAny(Iterable<Pattern> include, {Iterable<Pattern> exclude}) =>
  * string, not a substring.
  */
 bool matchesFull(Pattern pattern, String str) {
-  var iter = pattern.allMatches(str).iterator;
-  if (iter.moveNext()) {
-    var match = iter.current;
-    return match.start == 0
-        && match.end == str.length
-        && !iter.moveNext();
-  }
-  return false;
+  var matches = pattern.allMatches(str);
+  if (matches.length != 1) return false;
+  var match = matches.elementAt(0);
+  return match.start == 0 && match.end == str.length;
 }
-
-bool _hasMatch(Iterable<Match> matches) => matches.iterator.moveNext();

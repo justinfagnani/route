@@ -22,7 +22,7 @@ typedef void EventHandler(Event e);
  * and creating HTML event handlers that navigate to a URL.
  */
 class Router {
-  final LinkedHashMap<UrlPattern, Handler> _handlers;
+  final _handlers = <UrlPattern, Handler>{};
   final bool useFragment;
   bool _listen = false;
 
@@ -33,13 +33,12 @@ class Router {
    * [History.supportsState].
    */
   Router({bool useFragment})
-      : _handlers = new LinkedHashMap<UrlPattern, Handler>(),
-        useFragment = (useFragment == null)
+      : useFragment = (useFragment == null)
             ? !History.supportsState
             : useFragment;
 
   /**
-   * Registers a function that will be invoked when the router handles a URL
+   * Registers a [handler] that will be invoked when the router handles a URL
    * that matches [pattern].
    */
   void addHandler(UrlPattern pattern, Handler handler) {
@@ -48,11 +47,8 @@ class Router {
   }
 
   UrlPattern _getUrl(path) {
-    var matches = _handlers.keys.where((url) => url.matches(path));
-    if (matches.isEmpty) {
-      throw new ArgumentError("No handler found for $path");
-    }
-    return matches.first;
+    return _handlers.keys.firstWhere((url) => url.matches(path),
+      orElse: () {throw new ArgumentError("No handler found for $path");});
   }
 
   /**
@@ -84,9 +80,7 @@ class Router {
    */
   void listen({bool ignoreClick: false}) {
     _logger.finest('listen ignoreClick=$ignoreClick useFragment=$useFragment');
-    if (_listen) {
-      throw new StateError('listen should be called once.');
-    }
+    if (_listen) throw new StateError('listen should be called once.');
     _listen = true;
     if (useFragment) {
       window.onHashChange.listen((_) {
@@ -103,16 +97,15 @@ class Router {
       });
     }
     if (!ignoreClick) {
-      window.onClick.listen((e) {
-        if (e.target is AnchorElement) {
-          AnchorElement anchor = e.target;
-          if (anchor.host == window.location.host) {
-            var fragment = (anchor.hash == '') ? '' : '${anchor.hash}';
-            gotoPath("${anchor.pathname}$fragment", anchor.title);
-            e.preventDefault();
-          }
-        }
-      });
+      window.onClick
+          .where((e) => e.target is AnchorElement)
+          .listen((e) {
+            AnchorElement anchor = e.target;
+            if (anchor.host == window.location.host) {
+              e.preventDefault();
+              gotoPath("${anchor.pathname}${anchor.hash}", anchor.title);
+            }
+          });
     }
   }
 
@@ -138,14 +131,12 @@ class Router {
     if (url != null) {
       _go(path, title);
       // If useFragment, onHashChange will call handle for us.
-      if (!_listen || !useFragment) {
-        _handlers[url](path);
-      }
+      if (!_listen || !useFragment) _handlers[url](path);
     }
   }
 
   void _go(String path, String title) {
-    title = (title == null) ? '' : title;
+    if (title == null) title = '';
     if (useFragment) {
       window.location.assign(path);
       (window.document as HtmlDocument).title = title;
