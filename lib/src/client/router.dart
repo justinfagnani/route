@@ -26,7 +26,7 @@ class Router {
    */
   Router(Map<String, Route> routes, {String index, bool useFragment,
       html.Window window})
-      : root = new Route._(_uri(''), index: index)
+      : root = new Route(uri(''), index: index)
             ..addRoutes(routes),
         _useFragment = (useFragment == null)
             ? !html.History.supportsState
@@ -92,12 +92,12 @@ class Router {
    */
   Future<bool> navigate(Uri uri, {String title, bool replace}) {
     return root.enter(uri).then((allowed) {
-      if (allowed) _navigate(uri, title: title, replace: replace);
+      if (allowed) _navigateBrowser(uri, title: title, replace: replace);
       return allowed;
     });
   }
 
-  void _navigate(Uri uri, {String title, bool replace}) {
+  void _navigateBrowser(Uri uri, {String title, bool replace}) {
     title = (title == null) ? '' : title;
     replace = (replace == null) ? false : replace;
     if (replace) {

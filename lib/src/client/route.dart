@@ -5,26 +5,6 @@
 part of route.client;
 
 /**
- * Returns a new Route
- */
-Route route(dynamic template, {String defaultRoute, String index,
-    Map<String, Route> children}) {
-
-  _logger.fine("route($template, defaultRoute: $defaultRoute)");
-
-  if (template == null) throw new ArgumentError("template is null");
-
-  UriPattern t = (template is String) ? _uri(template) : template;
-  var r = new Route._(t, index: index, defaultRouteName: defaultRoute);
-  if (children != null) r.addRoutes(children);
-//  print(r);
-  return r;
-}
-
-UriPattern _uri(String s) =>
-    new UriParser(new UriTemplate(s));
-
-/**
  * Route is a node in the hierarchical tree of routes.
  *
  * A Route matches against some state of the application, typicaly the URL, and
@@ -33,39 +13,49 @@ UriPattern _uri(String s) =>
  */
 class Route extends ChangeNotifier {
 
-  final UriPattern template;
-  final StreamController<RouteEvent> _onEnterController;
-  final StreamController<RouteEvent> _onExitController;
+  final StreamController<RouteEvent> _beforeEnterController =
+      new StreamController<RouteEvent>.broadcast(sync: true);
 
-  Map<String, Route> get children => _children;
-  final Map<String, Route> _children = new LinkedHashMap<String, Route>();
+  final StreamController<RouteEvent> _beforeExitController =
+      new StreamController<RouteEvent>.broadcast(sync: true);
 
+  final StreamController<RouteEvent> _onEnterController =
+      new StreamController<RouteEvent>.broadcast(sync: true);
+
+  final StreamController<RouteEvent> _onExitController =
+      new StreamController<RouteEvent>.broadcast(sync: true);
+
+  final UriPattern pattern;
   final String _indexRouteName;
   final String _defaultRouteName;
+  final Map<String, Route> _children = new LinkedHashMap<String, Route>();
 
   Route _parent;
   Router _router;
 
-  // state
+  // current routing state
   Uri _currentUri;
   Route _currentChild;
-  // parameters
+  Map<String, Object> parameters;
 
-  Route(template, {String index, String defaultRouteName})
-      : this._(_uri(template), index: index, defaultRouteName: defaultRouteName);
-
-  Route._(UriPattern template, {String index, String defaultRouteName})
-      : this.template = template,
-//        _parser = new UriParser(template),
+  Route(UriPattern pattern, {String index, String defaultRouteName})
+      : this.pattern = pattern,
         _indexRouteName = index,
-        _onEnterController =
-            new StreamController<RouteEvent>.broadcast(sync: true),
-        _onExitController =
-            new StreamController<RouteEvent>.broadcast(sync: true),
-        _defaultRouteName = defaultRouteName;
+        _defaultRouteName = defaultRouteName {
+    if (pattern == null) throw new ArgumentError();
+    // TODO: validate index and default
+  }
+
+  Route get _indexRoute => _children[_indexRouteName];
+
+  Map<String, Route> get children => _children;
 
   void addRoutes(Map<String, Route> children) => children.forEach(addRoute);
 
+  /**
+   * Adds a new child route to this Route. [name] must be unique among this
+   * Route's children.
+   */
   void addRoute(String name, Route route) {
     if (_children.containsKey(name)) {
       throw new ArgumentError('Route with name "$name" already exists');
@@ -78,38 +68,138 @@ class Route extends ChangeNotifier {
     route._router = _router;
   }
 
+  /**
+   * A Stream of [RouteEvent]s fired when this Route is being entered.
+   */
+  Stream<RouteEvent> get beforeEnter => _beforeEnterController.stream;
+
+  /**
+   * A Stream of [RouteEvent]s fired when this Route is being exited.
+   */
+  Stream<RouteEvent> get beforeExit => _beforeExitController.stream;
+
+  /**
+   * A Stream of [RouteEvent]s fired when this Route is being entered.
+   */
   Stream<RouteEvent> get onEnter => _onEnterController.stream;
+
+  /**
+   * A Stream of [RouteEvent]s fired when this Route is being exited.
+   */
   Stream<RouteEvent> get onExit => _onExitController.stream;
+
+  /**
+   * The parent of this Route.
+   */
   Route get parent => _parent;
 
-  Route get _indexRoute => _children[_indexRouteName];
+  remove() {
+    parent.children.remove(this.name);
+  }
 
-  UriMatch match(Uri uri) => template.match(uri); //_parser.parsePrefix(uri);
+  /**
+   * The current child of this Route, which can be this Route.
+   */
+  Route get currentRoute => (_currentChild == null) ? this
+      : _currentChild.currentRoute;
 
-  RouteMatch getChild(Uri uri) {
+  /**
+   * Returns the sub-route identified by [path]. Throws a [ArgumentError] if
+   * [path] isn't valid.
+   */
+  Route operator[](String path) => _getRoute(path, path.split('.'));
+
+  Route _getRoute(String path, Iterable<String> parts) {
+    if (parts.isEmpty) throw new ArgumentError('Route $path not found');
+    var child = _children[parts.first];
+    if (child == null) throw new ArgumentError('Route $path not found');
+    if (parts.length == 1) return child;
+    return child._getRoute(path, parts.skip(1));
+  }
+
+  /**
+   * Returns the direct child route that handles [uri].
+   */
+  RouteMatch _getChild(Uri uri) {
     for (var name in _children.keys) {
-      var match = _children[name].match(uri);
+      var match = _children[name].pattern.match(uri);
       if (match != null) {
         return new RouteMatch(_children[name], name, match);
       }
     }
+    return null;
   }
 
-  Route get currentRoute => (_currentChild == null) ? this
-      : _currentChild.currentRoute;
-
-  navigate(String routeName, {Map<String, String> parameters}) {
-    var newRoute = _children[routeName];
-    if (newRoute == null) {
-      throw new ArgumentError('no route found: $routeName in $_children');
+  List<RouteMatch> _getPath(Uri uri) {
+    var match = _getChild(uri);
+    if (match == null) {
+      return [];
     }
-    var newUri = Uri.parse(newRoute.template.expand(parameters));
-    // TODO: push the new URI to the router / window URL bar
-    enter(newUri).then((allowed) {
-      print("navigated");
-      // to do: propagate to parent
-      _router._navigate(newUri);
+    return match.route._getPath(match.uriMatch.rest)..add(match);
+  }
+
+  /**
+   * Navigates to this route, making it the current route of the whole route
+   * hierarchy.
+   *
+   * TODO: describe what happens if this route doesn't isn't a valid leaf node,
+   * if it has children, but doesn't have an index route.
+   */
+  Future<bool> navigate({Map<String, String> parameters, String title,
+      bool replace}) {
+    var newUri = pattern.expand(parameters);
+    // TODO: verify that the route found by navigating to newUri is the same
+    // as this route, otherwise there's an ambiguity in the URI patterns and
+    // we tried to navigate to a route that's unreachable with newUri
+    return _router.navigate(newUri, title: title, replace: replace);
+//    // walk up to the root, collect nodes for the new route
+//    var path = _getPath();
+//    // then walk up from the current route calling _beforeExit
+//    // then walk down from the root into the new route, calling _beforeEnter
+//    // then walk up the current route again calling _onExit
+//    // then walk down the new route again calling _onEnter
+//    return _router.root.currentRoute._beforeExit(parameters).then((allowed) {
+//      _router.root._beforeEnter(path, parameters);
+//      // TODO: push the new URI to the router / window URL bar
+//      enter(newUri).then((allowed) {
+//        print("navigated");
+//        // to do: propagate to parent
+//        _router._navigate(newUri);
+//      });
+//    });
+  }
+
+  Iterable<Route> _getPathToRoot() {
+    var path = <Route>[];
+    var r = this;
+    while (r.parent != null) {
+      path.add(r);
+    }
+    return path.reversed;
+  }
+
+  // walk up the route hierarchy, sending an event to the beforeExit streams
+  // along the way. wait for each event to signal that exiting is allowed
+  Future<bool> _beforeExit(Map<String, String> parameters) {
+    // TODO: need to clarify if this should contain the current URI and
+    // parameters, the new URI and parameters, or both
+    var event = new RouteEvent(this, this._currentUri, parameters, isExit: true);
+    _beforeExitController.add(event);
+    return event.checkNavigationAllowed().then((allowed) {
+      if (!allowed) return false;
+      if (parent != null) return parent._beforeExit(parameters);
+      // reached the top, walk down the new route calling _beforeEnter
+      return true;
     });
+  }
+
+  Future<bool> _beforeEnter(Iterable<Route> path, Map<String, String> parameters) {
+    var event = new RouteEvent(this, this._currentUri, parameters, isExit: true);
+    if (path.isNotEmpty) {
+      var child = _children[path.first];
+      if (child == null) throw new ArgumentError(path);
+      return child._beforeEnter(path.skip(1), parameters);
+    }
   }
 
   /**
@@ -117,14 +207,14 @@ class Route extends ChangeNotifier {
    * rest, part after parsing if this route is a child of of another route.
    */
   Future<bool> enter(Uri uri, {Map<String, String> parameters}) {
-    print("Route($template).enter($uri): _currentChild: $_currentChild");
+    print("Route($pattern).enter($uri): _currentChild: $_currentChild");
 
     if (uri == null) throw new ArgumentError("uri is null");
-    var m = match(uri);
-    if (m == null) throw new ArgumentError("$uri doesn't match $template");
+    var m = pattern.match(uri);
+    if (m == null) throw new ArgumentError("$uri doesn't match $pattern");
 
     var childUri = m.rest;
-    RouteMatch childMatch = getChild(childUri);
+    RouteMatch childMatch = _getChild(childUri);
 
     // check if we're allowed to leave the current route
     // start checking routes bottom up?
@@ -182,16 +272,16 @@ class Route extends ChangeNotifier {
 //    return (path.length == 1) ? child : child._getRoute(path.sublist(1));
 //  }
 
-  String get uri => getUri();
+//  String get uri => getUri();
 
-  void set uri(String u) {
-    print("set uri=$u");
-    var newUri = Uri.parse(u);
-    enter(newUri).then((allowed) {
-      notifyPropertyChange(#uri, getUri(), newUri);
+//  void set uri(String u) {
+//    print("set uri=$u");
+//    var newUri = Uri.parse(u);
+//    enter(newUri).then((allowed) {
+//      notifyPropertyChange(#uri, getUri(), newUri);
 //      _router._navigate(newUri);
-    });
-  }
+//    });
+//  }
 
   /**
    * Returns a URI for this route expended with [parameters].
@@ -200,8 +290,8 @@ class Route extends ChangeNotifier {
   String getUri([Map<String, String> parameters]) {
     var _parameters = {};
     if (parameters != null ) _parameters.addAll(parameters);
-    if (_currentUri != null) _parameters.addAll(template.match(_currentUri).parameters);
-    String localUri = template.expand(_parameters).toString();
+    if (_currentUri != null) _parameters.addAll(pattern.match(_currentUri).parameters);
+    String localUri = pattern.expand(_parameters).toString();
     if (_parent != null) {
       var parentUri = _parent.getUri(_parameters);
 //      return mergeUris(parentUri, localUri);
@@ -220,7 +310,7 @@ class Route extends ChangeNotifier {
 //    return template.expand(parameters);
 //  }
 
-  String toString() => "Route{ template: $template,"
+  String toString() => "Route{ template: $pattern,"
       " defaultRouteName: $_defaultRouteName,"
       " children: $_children}";
 }

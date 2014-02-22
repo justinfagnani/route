@@ -25,8 +25,8 @@ main() {
       });
 
       test('should have empty initial state', () {
-        var r = new Route('a');
-        expect(r.uri, 'a');
+        var r = new Route(uri('a'));
+        expect(r.getUri(), 'a');
         expect(r.children, isEmpty);
         expect(r.parent, isNull);
         expect(r.currentRoute, r);
@@ -39,30 +39,30 @@ main() {
     group('match()', () {
 
       test('should match a relative URI', () {
-        var r = new Route('a');
-        var match = r.match(Uri.parse('a'));
+        var r = new Route(uri('a'));
+        var match = r.pattern.match(Uri.parse('a'));
         expect(match, isNotNull);
         expect(match.parameters, {});
         expect(match.rest, equalsUri(Uri.parse('')));
       });
 
       test('should match an absolute URI', () {
-        var r = new Route('/a');
-        var match = r.match(Uri.parse('/a'));
+        var r = new Route(uri('/a'));
+        var match = r.pattern.match(Uri.parse('/a'));
         expect(match, isNotNull);
         expect(match.parameters, {});
         expect(match.rest, equalsUri(Uri.parse('')));
       });
 
       test('should not match a non-matching URI', () {
-        var r = new Route('a');
-        var match = r.match(Uri.parse('b'));
+        var r = new Route(uri('a'));
+        var match = r.pattern.match(Uri.parse('b'));
         expect(match, isNull);
       });
 
       test('should match a prefix', () {
-        var r = new Route('/a');
-        var match = r.match(Uri.parse('/a/b'));
+        var r = new Route(uri('/a'));
+        var match = r.pattern.match(Uri.parse('/a/b'));
         expect(match, isNotNull);
         expect(match.parameters, {});
         expect(match.rest, equalsUri(Uri.parse('b')));
@@ -73,32 +73,32 @@ main() {
     group('getUri()', () {
 
       test('should return the URI', () {
-        var r = new Route('a');
+        var r = new Route(uri('a'));
         expect(r.getUri(), 'a');
-        expect(r.uri, 'a');
+        expect(r.getUri(), 'a');
       });
 
       test('should return the URI with parameters', () {
-        var r = new Route('{a}/{b}');
+        var r = new Route(uri('{a}/{b}'));
         expect(r.getUri({'a': 'x', 'b': 'y'}), 'x/y');
       });
 
       skip_test('should throw if parameters not available', () {
-        var r = new Route('{a}');
+        var r = new Route(uri('{a}'));
         expect(() => r.getUri(), throws);
       });
 
       test('should return the URI from a parent + child', () {
-        var a = new Route('/a');
-        var b = new Route('/b');
+        var a = new Route(uri('/a'));
+        var b = new Route(uri('/b'));
         a.addRoute('b', b);
-        expect(a.uri, '/a');
-        expect(b.uri, '/a/b');
+        expect(a.getUri(), '/a');
+        expect(b.getUri(), '/a/b');
       });
 
       test('should return the URI from a parent + child with parameters', () {
-        var a = new Route('/{a}');
-        var b = new Route('/{b}');
+        var a = new Route(uri('/{a}'));
+        var b = new Route(uri('/{b}'));
         a.addRoute('b', b);
         expect(a.getUri({'a': 'x', 'b': 'y'}), '/x');
         expect(b.getUri({'a': 'x', 'b': 'y'}), '/x/y');
@@ -109,9 +109,9 @@ main() {
     group('addRoute()', () {
 
       test("should add a child, and set it's parent", () {
-        var a = new Route('a');
-        var b = new Route('b');
-        var c = new Route('c');
+        var a = new Route(uri('a'));
+        var b = new Route(uri('b'));
+        var c = new Route(uri('c'));
         a.addRoute('b', b);
         expect(a.children, {'b': b});
         expect(b.parent, a);
@@ -120,17 +120,17 @@ main() {
       });
 
       test('should not allow name collisions', () {
-        var a = new Route('a');
-        var b = new Route('b');
-        var c = new Route('c');
+        var a = new Route(uri('a'));
+        var b = new Route(uri('b'));
+        var c = new Route(uri('c'));
         a.addRoute('b', b);
         expect(() => a.addRoute('b', c), throws);
       });
 
       test('should not allow children who already have a parent', () {
-        var a = new Route('a');
-        var b = new Route('b');
-        var c = new Route('c');
+        var a = new Route(uri('a'));
+        var b = new Route(uri('b'));
+        var c = new Route(uri('c'));
         b.addRoute('c', c);
         expect(() => a.addRoute('c', c), throws);
       });
@@ -140,55 +140,77 @@ main() {
     group('addRoutes()', () {
 
       test('should add multiple children', () {
-        var a = new Route('a');
-        var b = new Route('b');
-        var c = new Route('c');
+        var a = new Route(uri('a'));
+        var b = new Route(uri('b'));
+        var c = new Route(uri('c'));
         a.addRoutes({'b': b, 'c': c});
         expect(a.children, {'b': b, 'c': c});
       });
 
     });
 
-    group('getChild()', () {
-      test('should find matching children', () {
-        var a = new Route('a');
-        var b = new Route('b');
-        var c = new Route('c');
-        a.addRoutes({'b': b, 'c': c});
-        expect(a.getChild(Uri.parse('a')), isNull);
-        expect(a.getChild(Uri.parse('b')).route, b);
-        expect(a.getChild(Uri.parse('c')).route, c);
-        expect(a.getChild(Uri.parse('d')), isNull);
+    skip_group('getChild()', () {
+//      test('should find matching children', () {
+//        var a = new Route(uri('a'));
+//        var b = new Route(uri('b'));
+//        var c = new Route(uri('c'));
+//        a.addRoutes({'b': b, 'c': c});
+//        expect(a._getChild(Uri.parse('a')), isNull);
+//        expect(a._getChild(Uri.parse('b')).route, b);
+//        expect(a._getChild(Uri.parse('c')).route, c);
+//        expect(a._getChild(Uri.parse('d')), isNull);
+//      });
+    });
+
+    group('[]', () {
+
+      var a = new Route(uri('a'));
+      var b = new Route(uri('b'));
+      var c = new Route(uri('c'));
+      var d = new Route(uri('d'));
+      a.addRoutes({'b': b, 'c': c});
+      b.addRoute('d', d);
+
+
+      test('should get a route by path', () {
+        expect(a['b'], b);
+        expect(a['c'], c);
+        expect(a['b.d'], d);
+      });
+
+      test('should throw if a route is not found', () {
+        expect(() => a['e'], throwsArgumentError);
+        expect(() => a[''], throwsArgumentError);
       });
     });
 
     group('enter()', () {
 
       test('should dispatch an enter RouteEvent', () {
-        var a = new Route('{a}');
+        var a = new Route(uri('{a}'));
 
         a.onExit.listen((RouteEvent e) {
           fail('should not exit A');
         });
 
         return Future.wait([
-          a.onEnter.first.then(expectAsync1((RouteEvent e) {
+          a.onEnter.first.then(expectAsync((RouteEvent e) {
             expect(e, matchesRouteEvent(
                 route: a,
                 uri: Uri.parse('a/b'),
                 parameters: {'a': 'a'},
                 isExit: false));
           })),
-          a.enter(Uri.parse('a/b')).then(expectAsync1((allowed) {
+          a.enter(Uri.parse('a/b')).then(expectAsync((allowed) {
             expect(allowed, isTrue);
           }))
         ], eagerError: true);
       });
 
       test('should dispatch an exit RouteEvent', () {
-        var a = new Route('/{a}');
-        var b = new Route('b');
-        var c = new Route('c');
+        var a = new Route(uri('/{a}'));
+        var b = new Route(uri('b'));
+        var c = new Route(uri('c'));
         a.addRoutes({'b': b, 'c': c});
         return Future.wait([
           b.onExit.first.then((RouteEvent e) {
@@ -212,13 +234,13 @@ main() {
       });
 
       test('should throw if the URI does not match', () {
-        var a = new Route('a');
+        var a = new Route(uri('a'));
         expect(() => a.enter(null), throwsArgumentError);
         expect(() => a.enter(Uri.parse('b')), throwsArgumentError);
       });
 
       test('should wait for an allow Future to complete', () {
-        var a = new Route('{a}');
+        var a = new Route(uri('{a}'));
         var completer = new Completer();
         var future = Future.wait([
           a.onEnter.first.then((RouteEvent e) {
@@ -235,7 +257,7 @@ main() {
       });
 
       test('should return false if an onEnter listener denies', () {
-        var a = new Route('{a}');
+        var a = new Route(uri('{a}'));
         var completer = new Completer();
         var future = Future.wait([
           a.onEnter.first.then((RouteEvent e) {
@@ -252,9 +274,9 @@ main() {
       });
 
       test('should dispatch a RouteEvent on children', () {
-        var a = new Route('a');
-        var b = new Route('b');
-        var c = new Route('c');
+        var a = new Route(uri('a'));
+        var b = new Route(uri('b'));
+        var c = new Route(uri('c'));
         a.addRoutes({'b': b, 'c': c});
 
         // Due to Route using sync controllers, and exits firing before enters,
@@ -284,13 +306,13 @@ main() {
     group('construction', () {
       test('should add routes from the constructor', () {
         Router router = new Router({
-          'one': route('/one'),
-          'two': route('/two'),
+          'one': route(uri('/one')),
+          'two': route(uri('/two')),
         });
         expect(router.root.children, contains('one'));
         expect(router.root.children, contains('two'));
-        expect(router['one'].template.expand({}), matchesUri(path: '/one'));
-        expect(router['two'].template.expand({}), matchesUri(path: '/two'));
+        expect(router['one'].pattern.expand({}), matchesUri(path: '/one'));
+        expect(router['two'].pattern.expand({}), matchesUri(path: '/two'));
       });
     });
 
@@ -299,7 +321,7 @@ main() {
       test('should call enter and exit on routes', () {
         var wnd = new MockWindow();
         var router = new Router({
-          'one': route('/one')
+          'one': route(uri('/one'))
         }, window: wnd);
         return Future.wait([
           router['one'].onEnter.first.then((e) {
@@ -312,7 +334,7 @@ main() {
       test('should call window.pushState', () {
         var wnd = new MockWindow();
         var router = new Router({
-          'one': route('/one')
+          'one': route(uri('/one'))
         }, window: wnd);
         var f2 = router.navigate(Uri.parse('/one'));
         return Future.wait([f2]).then((allowed) {
@@ -326,8 +348,8 @@ main() {
   group('route()', () {
 
     test('should return a Route with a template', () {
-      Route r = route('a');
-      expect(r.template, new isInstanceOf<UriPattern>());
+      Route r = route(uri('a'));
+      expect(r.pattern, new isInstanceOf<UriPattern>());
     });
 
     test('should require a template', () {
@@ -335,8 +357,8 @@ main() {
     });
 
     test('should add children to the Route', () {
-      var b = route('b');
-      var a = route('a', children: {
+      var b = route(uri('b'));
+      var a = route(uri('a'), children: {
         'b': b
       });
       expect(b.parent, a);

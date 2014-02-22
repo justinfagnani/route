@@ -28,7 +28,10 @@ class App extends PolymerElement with Navigator {
   App.created()
       : super.created(),
       router = new Router({
-        'one': route('/one'),
+        'one': route(
+            uri('/one'),
+            onEnter: f,
+            onExit: g),
         'two': route('/two'),
         'catchAll': route('/')
       }, index: 'one') {
