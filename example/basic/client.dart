@@ -7,6 +7,9 @@ import 'package:route/client.dart';
 
 import 'urls.dart' as urls;
 
+
+var router;
+
 main() {
   Logger.root
     ..level = Level.FINEST
@@ -14,12 +17,12 @@ main() {
 
   querySelector('#warning').remove();
 
-  var router = new Router({
-    'home': route(urls.home)..onEnter.listen(showHome),
-    'one': route(urls.one)..onEnter.listen(showOne),
-    'two': route(urls.two)..onEnter.listen(showTwo),
-    'catchAll': route('/{a}')..onEnter.listen(showHome),
-  }, index: 'one');
+  router = new Router({
+    'home': route(urls.home, matchFull: true, onEnter: showHome),
+    'one': route(urls.one, onEnter: showOne),
+    'two': route(urls.two, onEnter: showTwo),
+    'default': route(uri('/{+a}'), onEnter: showHome),
+  }, index: 'one' /* , defaultRoute: 'home' */);
 
   querySelector('#linkOne').attributes['href'] = router['one'].getUri();
   querySelector('#linkTwo').attributes['href'] = router['two'].getUri();
@@ -29,17 +32,22 @@ main() {
 
 void showHome(RouteEvent e) {
   print("showHome: ${e.route.parent}");
-  e.route.parent.navigate('one');
+  // redirects to /one
+  router['one'].navigate();
 }
 
 void showOne(RouteEvent e) {
   print("showOne");
   querySelector('#one').classes.add('selected');
   querySelector('#two').classes.remove('selected');
+  querySelector('#linkOne').classes.add('selected');
+  querySelector('#linkTwo').classes.remove('selected');
 }
 
 void showTwo(RouteEvent e) {
   print("showTwo");
   querySelector('#one').classes.remove('selected');
   querySelector('#two').classes.add('selected');
+  querySelector('#linkOne').classes.remove('selected');
+  querySelector('#linkTwo').classes.add('selected');
 }

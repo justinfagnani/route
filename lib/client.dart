@@ -11,7 +11,7 @@ library route.client;
 
 import 'dart:async';
 import 'dart:html' as html;
-import 'dart:collection' show LinkedHashMap;
+import 'dart:collection' show LinkedHashMap, LinkedList, LinkedListEntry;
 
 import 'package:logging/logging.dart';
 import 'package:observe/observe.dart';
@@ -25,5 +25,8 @@ part 'src/client/route.dart';
 part 'src/client/route_builder.dart';
 part 'src/client/route_event.dart';
 part 'src/client/router.dart';
+part 'src/client/route_match.dart';
 
 final _logger = new Logger('route.client');
+
+const SSS = '1234';

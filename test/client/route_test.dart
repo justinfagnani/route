@@ -1,17 +1,13 @@
-library route.client_test;
+library route.route_test;
 
 import 'dart:async';
-//import 'dart:html';
 
 import 'package:route/client.dart';
 import 'package:uri/uri.dart';
 import 'package:uri/matchers.dart';
 
 import 'package:unittest/unittest.dart';
-import 'package:unittest/mock.dart';
 import 'package:unittest/html_enhanced_config.dart';
-
-import 'html_mocks.dart';
 
 main() {
   useHtmlEnhancedConfiguration();
@@ -37,7 +33,57 @@ main() {
     });
 
     group('match()', () {
+      var a = new Route(uri('a'));
+      var b = new Route(uri('b'));
+      var c = new Route(uri('c'));
+      var d = new Route(uri('d/{a}'));
+      var e = new Route(uri('e/{b}'));
+      a.addRoutes({'b': b, 'c': c});
+      b.addRoute('d', d);
+      d.addRoute('e', e);
 
+      // TODO: need to try to match a invalid non-leaf node, one that doesn't
+      // have an index route and shouldn't be entered except via a decendent.
+      // Unsure if that should throw here or when trying to enter()
+
+      test('should match a leaf route', () {
+        var uri = Uri.parse('c');
+        var matches = a.match(uri);
+        expect(matches, hasLength(1));
+        var match = matches.single;
+        expect(match.name, 'c');
+        expect(match.route, c);
+        expect(match.pattern, c.pattern);
+        expect(match.uri, uri);
+      });
+
+      test('should match a nested route', () {
+        var uri = Uri.parse('b/d/123');
+        var matches = a.match(uri);
+        expect(matches, hasLength(2));
+        var match = matches.elementAt(1);
+        expect(match.name, 'd', reason: 'name');
+        expect(match.route, d);
+        expect(match.pattern, d.pattern);
+        expect(match.uri.toString(), 'd/123');
+      });
+
+      test('should match nested routes with parameters', () {
+        var uri = Uri.parse('b/d/123/e/456');
+        var matches = a.match(uri);
+        expect(matches, hasLength(3));
+        var dMatch = matches.elementAt(1);
+        expect(dMatch.name, 'd', reason: 'name');
+        expect(dMatch.parameters, {'a': '123'});
+        var eMatch = matches.elementAt(2);
+        expect(eMatch.name, 'e', reason: 'name');
+        expect(eMatch.parameters, {'b': '456'});
+        expect(eMatch.uri.toString(), 'e/456');
+      });
+
+    });
+
+    group('pattern.match()', () {
       test('should match a relative URI', () {
         var r = new Route(uri('a'));
         var match = r.pattern.match(Uri.parse('a'));
@@ -184,7 +230,7 @@ main() {
       });
     });
 
-    group('enter()', () {
+    skip_group('enter()', () {
 
       test('should dispatch an enter RouteEvent', () {
         var a = new Route(uri('{a}'));
@@ -297,50 +343,6 @@ main() {
             expect(allowed, isTrue);
           })
         ]);
-      });
-    });
-  });
-
-  group('Router', () {
-
-    group('construction', () {
-      test('should add routes from the constructor', () {
-        Router router = new Router({
-          'one': route(uri('/one')),
-          'two': route(uri('/two')),
-        });
-        expect(router.root.children, contains('one'));
-        expect(router.root.children, contains('two'));
-        expect(router['one'].pattern.expand({}), matchesUri(path: '/one'));
-        expect(router['two'].pattern.expand({}), matchesUri(path: '/two'));
-      });
-    });
-
-    group('navigate', () {
-
-      test('should call enter and exit on routes', () {
-        var wnd = new MockWindow();
-        var router = new Router({
-          'one': route(uri('/one'))
-        }, window: wnd);
-        return Future.wait([
-          router['one'].onEnter.first.then((e) {
-            expect(true, true);
-          }),
-          router.navigate(Uri.parse('/one'))
-        ]);
-      });
-
-      test('should call window.pushState', () {
-        var wnd = new MockWindow();
-        var router = new Router({
-          'one': route(uri('/one'))
-        }, window: wnd);
-        var f2 = router.navigate(Uri.parse('/one'));
-        return Future.wait([f2]).then((allowed) {
-          expect(allowed[0], isTrue);
-          wnd.history.getLogs(callsTo('pushState')).verify(happenedOnce);
-        });
       });
     });
   });

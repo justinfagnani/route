@@ -4,13 +4,41 @@
   <head>
     <title>example</title>
     <style>
+      * {
+        font-family: 'Open Sans', san serif;
+      }
+      
+      body {
+        background: #eee;
+      }
+      
+      h1 {
+        border: solid 1px #aaa;
+        text-align: center;
+      }
+      
       section {
-        display: none;
         border: solid 1px #888;
+        background: white;
+        display: none;
+        padding: 8px;
       }
 
       section.selected {
         display: block;
+      }
+
+      nav a {
+        border: solid 1px #888;
+        display: inline-block;
+        margin: 0 0 -1px 0;
+        padding: 4px 8px;
+        color: black;
+      }
+
+      nav a.selected {
+        background: white;
+        border-bottom: solid white 1px;
       }
 
       .warning {
@@ -21,7 +49,6 @@
 
   <body>
     <h1>route.dart demo</h1>
-    <p>This demo requires a server to be truly useful. Coming soon!</p>
     <div id="warning">Dart is not running</div>
 
     <nav>

@@ -10,21 +10,29 @@ typedef RouteHandler(RouteEvent);
  * Returns a new Route
  */
 Route route(UriPattern pattern, {
+    RouteHandler beforeEnter,
+    RouteHandler beforeExit,
     RouteHandler onEnter,
     RouteHandler onExit,
     Map<String, Route> children,
     String defaultRoute,
-    String index
+    String index,
+    bool matchFull
   }) {
 
   _logger.fine("route($pattern, defaultRoute: $defaultRoute)");
 
   if (pattern == null) throw new ArgumentError("pattern is null");
 
-  var r = new Route(pattern, index: index, defaultRouteName: defaultRoute);
-  if (children != null) r.addRoutes(children);
+  var r = new Route(pattern, index: index, defaultRouteName: defaultRoute,
+      matchFull: matchFull);
+
+  if (beforeExit != null) r.beforeExit.listen(beforeExit);
+  if (beforeEnter != null) r.beforeEnter.listen(beforeEnter);
   if (onExit != null) r.onExit.listen(onExit);
-  if (onEnter != null) r.onExit.listen(onEnter);
+  if (onEnter != null) r.onEnter.listen(onEnter);
+
+  if (children != null) r.addRoutes(children);
   return r;
 }
 

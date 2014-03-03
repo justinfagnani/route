@@ -7,8 +7,8 @@ environment:
   sdk: '>=0.8.0'
 dependencies:
   logging: any
-  uri: '>=0.8.0'
-  quiver: '>=0.17.0'
+  uri: '>=0.9.0'
+  quiver: '>=0.18.0-dev'
 dev_dependencies:
   barback: any
   browser: any
@@ -18,6 +18,3 @@ dev_dependencies:
   polymer: any
   polymer_expressions: any
   polymer_ui_elements: any
-dependency_overrides:
-  uri:
-    path: /Users/justinfagnani/Documents/Projects/uri

@@ -8,6 +8,6 @@ import 'package:uri/uri.dart';
 
 final one = uri('/one');
 final two = uri('/two');
-final home = '/';
+final home = uri('/');
 
 UriParser uri(String s) => new UriParser(new UriTemplate(s));

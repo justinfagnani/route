@@ -1,8 +1,13 @@
-library route.example.basic.barback;
+// Copyright (c) 2014, the Dart project authors.  Please see the AUTHORS file
+// for details. All rights reserved. Use of this source code is governed by a
+// BSD-style license that can be found in the LICENSE file.
+
+library route.example.basic.serve_asset;
 
 import 'dart:async';
 import 'dart:io';
 
+import 'package:observe/transformer.dart';
 import 'package:barback/barback.dart';
 import 'package:html5lib/parser.dart';
 import 'package:html5lib/dom.dart';
@@ -10,6 +15,9 @@ import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
 import 'package:quiver/io.dart' as quiver;
 import 'package:quiver/iterables.dart' as quiver;
+import 'package:route/server.dart';
+
+import 'files.dart';
 
 final Logger _logger = new Logger('barback');
 
@@ -36,15 +44,17 @@ class _PackageProvider implements PackageProvider {
 
   Future<Asset> getAsset(AssetId id) {
     var packagePath = _packages[id.package];
-    var assetPath = id.path.startsWith('lib') ? id.path
-        : path.join('web', id.path);
+    var assetPath = (id.package == 'route' && !id.path.startsWith('lib'))
+        ? path.join('example/basic', id.path)
+        : id.path;
     var fullPath = path.join(packagePath, assetPath);
+    print("getAsset: $id $fullPath");
     return new Future.value(new Asset.fromPath(id, fullPath));
   }
 }
 
 Future<List<AssetId>> _getLibAssets() =>
-  new Directory('packages').list(recursive: true)
+  new Directory(_packagesDir).list(recursive: true)
     .where((e) => e is File)
     .map((e) {
       var parts = path.split(e.path);
@@ -54,36 +64,74 @@ Future<List<AssetId>> _getLibAssets() =>
     })
     .toList();
 
-Future<List<AssetId>> _getWebAssets(String packageName) {
-  var assets = [];
-  return quiver.visitDirectory(new Directory('web'), (e) {
-    if (e is File) assets.add(new AssetId(packageName, path.joinAll(path.split(e.path).sublist(1))));
-    return new Future.value(!e.path.endsWith('packages'));
-  }).then((_) => assets);
-}
+//Future<List<AssetId>> _getWebAssets(String packageName) {
+//  var assets = [];
+//  return quiver.visitDirectory(new Directory('web'), (e) {
+//    if (e is File) assets.add(new AssetId(packageName, path.joinAll(path.split(e.path).sublist(1))));
+//    return new Future.value(!e.path.endsWith('packages'));
+//  }).then((_) => assets);
+//}
 
 Future<List<String>> _getPackages() =>
     new Directory(_packagesDir).list(followLinks: false)
         .map((e) => e.path.substring(_packagesDir.length))
         .toList();
 
-Future<Barback> initBarback(String packageName, List<List<Transformer>> phases) {
+typedef Future<List<String>> PackagePathProvider();
 
+Future<Barback> initBarback() {
+  var phases = [[new ObservableTransformer()]];
+  var pathTransformer = [[new PathTransformer('/', 'route', ['client.html'])]];
+  var exampleAssets = ['client.html', 'client.dart', 'urls.dart'].map((f) =>
+    new AssetId('route', f));
   return _PackageProvider.create()
-    .then((provider) => Future.wait([_getLibAssets(), _getWebAssets(packageName)])
-    .then((r) {
-      var barback = new Barback(provider);
-      var assets = quiver.concat(r);
-      barback.updateSources(assets);
-
+    .then((provider) => _getLibAssets()
+    .then((assets) {
+      assets = quiver.concat([assets, exampleAssets]);
+      var barback = new Barback(provider)..updateSources(assets);
       return _getPackages().then((packages) {
         for (var package in packages) {
-          barback.updateTransformers(package, phases);
+          print(package);
+          if (package == 'route') {
+            barback.updateTransformers(package, quiver.concat([phases, pathTransformer]));
+          } else {
+            barback.updateTransformers(package, phases);
+          }
         }
-        return barback;
+        return serveAsset(barback);
       });
   }));
 }
+
+serveAsset(barback) => (HttpRequest req, [String pathOverride]) {
+  print("serveAsset: ${req.uri}");
+  var assetId;
+  var requestPath = pathOverride == null ? req.uri.path : pathOverride;
+  var parts = path.split(requestPath);
+  print(parts);
+  if (parts.length > 3 && parts[1] == 'packages') {
+    var package = parts[2];
+    var libPathParts = parts.sublist(3);
+    var assetPath = path.joinAll(quiver.concat([['lib'], libPathParts]));
+    assetId = new AssetId(package, assetPath);
+  } else {
+    var assetParts = parts.first == '/' ? parts.sublist(1) : parts;
+    assetId = new AssetId('route', path.joinAll(assetParts));
+  }
+  barback.updateSources([assetId]);
+  print("getting asset");
+  barback.getAssetById(assetId).then((Asset asset) {
+    print("got asset");
+    req.response.headers.contentType =
+        ContentTypes.forExtension(path.extension(asset.id.path));
+    return asset.read().pipe(req.response);
+  })
+  .then((_) => req.response.close())
+  .catchError((e, s) {
+    print("error: $e");
+    send404(req);
+  });
+};
 
 class PathTransformer extends Transformer {
 

@@ -7,56 +7,35 @@ library example.server;
 import 'dart:async';
 import 'dart:io';
 
-import 'package:barback/barback.dart';
-import 'package:observe/transformer.dart';
-import 'package:path/path.dart' as path;
 import 'package:route/server.dart';
-import 'package:quiver/iterables.dart' as quiver;
+import 'package:quiver/pattern.dart' show Glob;
 
-import 'barback.dart';
+import 'serve_asset.dart';
 import 'urls.dart' as urls;
-import 'files.dart';
 
+/**
+ * This server is neccessary to respond to all URLs that are valid for the
+ * client app. Since the client app uses Window.pushState, the location can be
+ * set to serveral different URLs, and if the user hits reload the server needs
+ * to be able to respond. We send the same HTML and Dart (client.html and
+ * client.dart) for the URLs /, /one and /two.
+ */
 main() {
   final allUrls = new RegExp('/(.*)');
 
-  initBarback('route', [
-      [new ObservableTransformer(),
-        new PathTransformer('/_web', 'route', ['client.html'])],
-      ]).then((barback) {
-
-
-    serveAsset(HttpRequest req, [String pathOverride]) {
-      var assetId;
-      var requestPath = pathOverride == null ? req.uri.path : pathOverride;
-      var parts = path.split(requestPath);
-      if (parts.length >= 3 && parts[2] == 'packages') {
-        var package = parts[3];
-        var libPathParts = parts.sublist(4);
-        var assetPath = path.joinAll(quiver.concat([['lib'], libPathParts]));
-        assetId = new AssetId(package, assetPath);
-      } else {
-        assetId = new AssetId('route', path.joinAll(parts.sublist(2)));
-      }
-      barback.updateSources([assetId]);
-      barback.getAssetById(assetId).then((Asset asset) {
-        req.response.headers.contentType =
-            ContentTypes.forExtension(path.extension(asset.id.path));
-        asset.read().pipe(req.response).then((_) => req.response.close());
-      }).catchError((e, s) {
-        print("error: $e");
-        send404(req);
-      });
-    }
+  // We serve through barback to do path fixes in HTML and the @observable
+  // transform for polymer
+  initBarback().then((serveAsset) {
 
     HttpServer.bind('127.0.0.1', 8080).then((server) {
       var router = new Router(server)
       ..filter(allUrls, logRequest)
-      ..serve(matchAny([urls.one, urls.two, urls.home])).listen((r) => serveAsset(r, 'client.html'))
-      ..serve(allUrls).listen(serveAsset)
+      ..serve(matchAny([urls.one, urls.two, '/']))
+          .listen((r) => serveAsset(r, 'client.html'))
+      ..serve(new Glob('/packages/**')).listen(serveAsset)
+      ..serve(matchAny(['/client.dart', '/urls.dart'])).listen(serveAsset)
       ..defaultStream.listen(send404);
     });
-
 
   });
 
