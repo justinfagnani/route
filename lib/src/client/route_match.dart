@@ -11,13 +11,14 @@ class RouteMatch extends LinkedListEntry<RouteMatch> {
 
   RouteMatch(this.route, this.name, this.uriMatch);
 
-  UriPattern get pattern => uriMatch.pattern;
+  UriPattern get pattern => uriMatch == null ? null : uriMatch.pattern;
 
-  Uri get uri => uriMatch.input;
+  Uri get uri => uriMatch == null ? null : uriMatch.input;
 
-  Uri get rest => uriMatch.rest;
+  Uri get rest => uriMatch == null ? null : uriMatch.rest;
 
-  Map<String, String> get parameters => uriMatch.parameters;
+  Map<String, String> get parameters =>
+      uriMatch == null ? {} : uriMatch.parameters;
 
-  String toString() => '$name ${uriMatch.input}';
+  String toString() => '$name ${uriMatch == null ? '' : uriMatch.input}';
 }

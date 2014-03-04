@@ -13,6 +13,8 @@ part of route.client;
  */
 class Route extends ChangeNotifier {
 
+  static final _indexPattern = new SimpleUriPattern(Uri.parse('/'));
+
   final StreamController<RouteEvent> _beforeEnterController =
       new StreamController<RouteEvent>.broadcast(sync: true);
 
@@ -47,12 +49,12 @@ class Route extends ChangeNotifier {
 
   Route(UriPattern pattern, {
       bool matchFull,
-      String index,
-      String defaultRouteName})
+      String indexRoute,
+      String defaultRoute})
       : pattern = pattern,
         matchFull = firstNonNull(matchFull, false),
-        _indexRouteName = index,
-        _defaultRouteName = defaultRouteName {
+        _indexRouteName = indexRoute,
+        _defaultRouteName = defaultRoute {
     if (pattern == null) throw new ArgumentError();
     // TODO: validate index and default
   }
@@ -129,6 +131,13 @@ class Route extends ChangeNotifier {
   }
 
   LinkedList<RouteMatch> match(Uri uri) {
+    var indexMatch = _indexPattern.match(uri);
+    if (indexMatch != null && _indexRouteName != null) {
+      var indexRoute = _children[_indexRouteName];
+      if (indexRoute == null) throw "index route $_indexRouteName not found";
+      var match = new RouteMatch(indexRoute, _indexRouteName, indexMatch);
+      return new LinkedList<RouteMatch>()..add(match);
+    }
     for (var name in _children.keys) {
       var child = _children[name];
       var uriMatch = child._matchUri(uri);
@@ -136,6 +145,14 @@ class Route extends ChangeNotifier {
         var routeMatch = new RouteMatch(child, name, uriMatch);
         return child.match(uriMatch.rest)..addFirst(routeMatch);
       }
+    }
+    if (_defaultRouteName != null) {
+      var defaultRoute = _children[_defaultRouteName];
+      if (defaultRoute == null) {
+        throw "default route $_defaultRouteName not found";
+      }
+      var match = new RouteMatch(defaultRoute, _defaultRouteName, null);
+      return new LinkedList<RouteMatch>()..add(match);
     }
     return new LinkedList<RouteMatch>();
   }

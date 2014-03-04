@@ -1,3 +1,7 @@
+// Copyright (c) 2013, the Dart project authors.  Please see the AUTHORS file
+// for details. All rights reserved. Use of this source code is governed by a
+// BSD-style license that can be found in the LICENSE file.
+
 part of route.client;
 
 typedef void RouteEventHandler(RouteEvent path);
@@ -6,23 +10,37 @@ typedef void RouteEventHandler(RouteEvent path);
  * Route enter or leave event.
  */
 class RouteEvent {
-  /// The route that fired this RouteEvent
+
+  /**
+   *  The route that fired this RouteEvent
+   */
   final Route route;
 
-  /// True if the event is an exit event
+  /**
+   *  True if the event is an exit event
+   */
   final bool isExit;
 
-  /// For an enter event, the new URI that is being navigated to
+  /**
+   *  For an enter event, the new URI that is being navigated to. For an exit
+   *  event, the URI being left.
+   */
   final Uri uri;
 
-  /// The parameters extracted from parsing the URI with the route's template
+  /**
+   *  The parameters extracted from parsing the URI with the route's template.
+   *  The parameters will include those extracted from the route's ancestors
+   *  as well as it's own, but not from it's children.
+   */
   final Map<String, String> parameters;
 
   var _allowNavigationFutures = <Future<bool>>[];
 
   RouteEvent(this.route, this.uri, this.parameters, {bool this.isExit: false});
 
-  /// True if the event is an enter event
+  /**
+   *  True if the event is an enter event.
+   */
   bool get isEnter => !isExit;
 
   /**

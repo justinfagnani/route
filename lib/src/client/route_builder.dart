@@ -16,7 +16,7 @@ Route route(UriPattern pattern, {
     RouteHandler onExit,
     Map<String, Route> children,
     String defaultRoute,
-    String index,
+    String indexRoute,
     bool matchFull
   }) {
 
@@ -24,7 +24,7 @@ Route route(UriPattern pattern, {
 
   if (pattern == null) throw new ArgumentError("pattern is null");
 
-  var r = new Route(pattern, index: index, defaultRouteName: defaultRoute,
+  var r = new Route(pattern, indexRoute: indexRoute, defaultRoute: defaultRoute,
       matchFull: matchFull);
 
   if (beforeExit != null) r.beforeExit.listen(beforeExit);
@@ -38,27 +38,3 @@ Route route(UriPattern pattern, {
 
 UriPattern uri(String s) =>
     new UriParser(new UriTemplate(s));
-
-//class RouteBuilder {
-//  String name;
-//  UriPattern pattern;
-//  String indexRoute;
-//  String defaultRoute;
-//  Map<String, RouteBuilder> children;
-//  RouteHandler beforeLeave;
-//  RouteHandler beforeEnter;
-//  RouteHandler onLeave;
-//  RouteHandler onEnter;
-//
-//
-//  RouteBuilder({
-//      this.name,
-//      this.pattern,
-//      this.indexRoute,
-//      this.defaultRoute,
-//      this.children,
-//      this.beforeLeave,
-//      this.beforeEnter,
-//      this.onLeave,
-//      this.onEnter});
-//}

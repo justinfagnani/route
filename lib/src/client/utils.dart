@@ -2,7 +2,10 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
+library route.client.utils;
+
 import 'dart:html' show Location;
+import 'package:uri/uri.dart' show UriPattern, UriMatch;
 
 Uri uriFromLocation(Location location) {
   var scheme = location.protocol;
@@ -15,4 +18,20 @@ Uri uriFromLocation(Location location) {
       query: location.search,
       fragment: location.hash);
   return uri;
+}
+
+class SimpleUriPattern implements UriPattern {
+  final Uri pattern;
+
+  SimpleUriPattern(this.pattern);
+
+  @override
+  Uri expand(Map<String, Object> parameters) => pattern;
+
+  @override
+  UriMatch match(Uri uri) => matches(uri) ? new UriMatch(this, uri, {}, null)
+      : null;
+
+  @override
+  bool matches(Uri uri) => pattern.toString() == uri.toString();
 }

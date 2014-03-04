@@ -1,15 +1,16 @@
+// Copyright (c) 2013, the Dart project authors.  Please see the AUTHORS file
+// for details. All rights reserved. Use of this source code is governed by a
+// BSD-style license that can be found in the LICENSE file.
+
 library route.router_test;
 
 import 'dart:async';
-//import 'dart:html';
 
 import 'package:route/client.dart';
-import 'package:uri/uri.dart';
-import 'package:uri/matchers.dart';
-
 import 'package:unittest/unittest.dart';
 import 'package:unittest/mock.dart';
 import 'package:unittest/html_enhanced_config.dart';
+import 'package:uri/matchers.dart';
 
 import '../html_mocks.dart';
 
@@ -17,8 +18,6 @@ main() {
   useHtmlEnhancedConfiguration();
 
   group('Router', () {
-
-    var _window = new MockWindow();
 
     group('new Router()', () {
 
@@ -40,17 +39,25 @@ main() {
       });
     });
 
-    group('navigation', () {
+    group('event notifications', () {
 
-      // TODO: test vetoing
-      test('should call beforeExit', () {
-        var wnd = new MockWindow();
-        var router = new Router({
+      var wnd;
+      var router;
+
+      setUp(() {
+        wnd = new MockWindow();
+        router = new Router({
           'one': route(uri('/one'), children: {
             'a': route(uri('a'))
           }),
-          'two': route(uri('/two'))
+          'two': route(uri('/two'), children: {
+            'b': route(uri('b'))
+          })
         }, window: wnd);
+      });
+
+      // TODO: test vetoing
+      test('should call beforeExit', () {
         router.root.currentChild = router['one'];
         router['one'].currentChild = router['one.a'];
 
@@ -68,13 +75,6 @@ main() {
       });
 
       test('should call beforeEnter', () {
-        var wnd = new MockWindow();
-        var router = new Router({
-          'one': route(uri('/one')),
-          'two': route(uri('/two'), children: {
-            'a': route(uri('a'))
-          })
-        }, window: wnd);
         router.root.currentChild = router['one'];
 
         return Future.wait([
@@ -82,23 +82,15 @@ main() {
             expect(e.route, router['two']);
             expect(e.isExit, false);
           }),
-          router['two.a'].beforeEnter.first.then((e) {
-            expect(e.route, router['two.a']);
+          router['two.b'].beforeEnter.first.then((e) {
+            expect(e.route, router['two.b']);
             expect(e.isExit, false);
           }),
-          router.navigate(Uri.parse('/two/a'))
+          router.navigate(Uri.parse('/two/b'))
         ]);
-
       });
 
       test('should call onExit', () {
-        var wnd = new MockWindow();
-        var router = new Router({
-          'one': route(uri('/one'), children: {
-            'a': route(uri('a'))
-          }),
-          'two': route(uri('/two'))
-        }, window: wnd);
         router.root.currentChild = router['one'];
         router['one'].currentChild = router['one.a'];
 
@@ -116,13 +108,6 @@ main() {
       });
 
       test('should call onEnter', () {
-        var wnd = new MockWindow();
-        var router = new Router({
-          'one': route(uri('/one')),
-          'two': route(uri('/two'), children: {
-            'a': route(uri('a'))
-          })
-        }, window: wnd);
         router.root.currentChild = router['one'];
 
         return Future.wait([
@@ -130,20 +115,89 @@ main() {
             expect(e.route, router['two']);
             expect(e.isExit, false);
           }),
-          router['two.a'].onEnter.first.then((e) {
-            expect(e.route, router['two.a']);
+          router['two.b'].onEnter.first.then((e) {
+            expect(e.route, router['two.b']);
             expect(e.isExit, false);
           }),
-          router.navigate(Uri.parse('/two/a'))
+          router.navigate(Uri.parse('/two/b'))
         ]);
 
       });
 
+      test('should allow vetos from beforeExit', () {
+        router.root.currentChild = router['one'];
+        router['one'].currentChild = router['one.a'];
+
+        router['two.b'].onEnter.first.then((e) {
+          fail('should not be called');
+        });
+
+        return Future.wait([
+          router['one'].beforeExit.first.then((RouteEvent e) {
+            e.allowNavigation(new Future.value(false));
+          }),
+          router.navigate(Uri.parse('/two/b'))
+        ]);;
+      });
+
+      test('should allow vetos from beforeEnter', () {
+        router.root.currentChild = router['one'];
+        router['one'].currentChild = router['one.a'];
+
+        router['two.b'].onEnter.first.then((e) {
+          fail('should not be called');
+        });
+
+        return Future.wait([
+          router['two'].beforeEnter.first.then((RouteEvent e) {
+            e.allowNavigation(new Future.value(false));
+          }),
+          router.navigate(Uri.parse('/two/b'))
+        ]);;
+      });
+
+    });
+
+    group('index routes', () {
+
+      test('should activated when matched', () {
+        var router = new Router({
+          'one': route(uri('/one')),
+        }, indexRoute: 'one');
+
+        return Future.wait([
+          router['one'].onEnter.first.then((e) {
+            expect(true, true);
+          }),
+          router.navigate(Uri.parse('/')),
+        ]);
+      });
+
+    });
+
+    group('default routes', () {
+
+      test('should activated when no other route matches', () {
+        var router = new Router({
+          'one': route(uri('/one')),
+        }, defaultRoute: 'one');
+
+        return Future.wait([
+          router['one'].onEnter.first.then((e) {
+            expect(true, true);
+          }),
+          router.navigate(Uri.parse('/two')),
+        ]);
+      });
+
+    });
+
+
+    group('browser navigation', () {
+
       test('should call window.pushState', () {
         var wnd = new MockWindow();
-        var router = new Router({
-          'one': route(uri('/one'))
-        }, window: wnd);
+        var router = new Router({'one': route(uri('/one'))}, window: wnd);
         var f2 = router.navigate(Uri.parse('/one'));
         return Future.wait([f2]).then((allowed) {
           expect(allowed[0], isTrue);

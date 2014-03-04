@@ -24,9 +24,10 @@ class Router {
    * value is null which then determines the behavior based on
    * [History.supportsState].
    */
-  Router(Map<String, Route> routes, {String index, String defaultRoute,
+  Router(Map<String, Route> routes, {String indexRoute, String defaultRoute,
     bool useFragment, html.Window window})
-      : root = new Route(uri(''), index: index, defaultRouteName: defaultRoute),
+      : root = new Route(uri(''), indexRoute: indexRoute,
+            defaultRoute: defaultRoute),
         _useFragment = (useFragment == null)
             ? !html.History.supportsState
             : useFragment,
