@@ -6,7 +6,7 @@ library route.url_pattern;
 
 // From the PatternCharacter rule here:
 // http://ecma-international.org/ecma-262/5.1/#sec-15.10
-// removed '( and ')' since we'll never escape them when not in a group
+// Removed '(' and ')' since we'll never escape them when not in a group.
 final _specialChars = new RegExp(r'[\^\$\.\|\+\[\]\{\}]');
 
 UrlPattern urlPattern(String p) => new UrlPattern(p);
@@ -14,7 +14,7 @@ UrlPattern urlPattern(String p) => new UrlPattern(p);
 /**
  * A pattern, similar to a [RegExp], that is designed to match against URL
  * paths, easily return groups of a matched path, and produce paths from a list
- * of arguments - this is they are "reversible".
+ * of arguments - this is, they are "reversible".
  *
  * `UrlPattern`s also allow for handling plain paths and URLs with a fragment in
  * a uniform way so that they can be used for client side routing on browsers
@@ -61,7 +61,7 @@ UrlPattern urlPattern(String p) => new UrlPattern(p);
  *
  * Since '#' matches both '#' and '/' it can be used in as a path separator
  * between the "static" portion of your URL and the "dynamic" portion. The
- * dynamic portion would be the part that change when a user navigates to new
+ * dynamic portion would be the part that changes when a user navigates to new
  * data that's loaded dynamically rather than loading a new page.
  *
  * In newer browsers that support `History.pushState()` an entire new path can
@@ -157,7 +157,7 @@ class UrlPattern implements Pattern {
   }
 
   /**
-   * Returns true if this pattern matches [path].
+   * Returns true if this pattern matches [str].
    */
   bool matches(String str) => _matches(regex, str);
 
@@ -216,7 +216,7 @@ class UrlPattern implements Pattern {
       var c = chars[i];
 
       if (depth == 0) {
-        // outside of groups, transform the pattern to matches the literal
+        // outside of groups, transform escaped sequences into literals
         if (c == r'\') {
           if (escaped) {
             sb.write(r'\\');
