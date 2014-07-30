@@ -58,11 +58,11 @@ main() {
   test('click handler with fragment is routed when useFragment == true', () {
     var router = new Router(useFragment: true);
     var urlWithFragment = new UrlPattern(r'(.*)#fragment');
-    router.addHandler(urlWithFragment, expectAsync1((String path) {
+    router.addHandler(urlWithFragment, expectAsync((String path) {
       expect(path, predicate((p) => p.endsWith('#fragment')));
     }));
     router.listen();
-    query('#a_with_fragment').click();
+    querySelector('#a_with_fragment').click();
   });
 
 }
