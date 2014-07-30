@@ -38,10 +38,10 @@ main() {
     var controller = new StreamController<HttpRequest>();
     var router = new Router(controller.stream);
     var testReq = new HttpRequestMock(Uri.parse('/foo'),method:'GET');
-    router.serve('/foo', method:'GET').listen(expectAsync1((req) {
+    router.serve('/foo', method:'GET').listen(expectAsync((req) {
       expect(req, testReq);
     }));
-    router.serve('/foo', method:'POST').listen(expectAsync1((_) {}, count:0));
+    router.serve('/foo', method:'POST').listen(expectAsync((_) {}, count:0));
     controller.add(testReq);
   });
 
@@ -51,7 +51,7 @@ main() {
     var testGetReq = new HttpRequestMock(Uri.parse('/foo'), method:'GET');
     var testPostReq = new HttpRequestMock(Uri.parse('/foo'), method:'POST');
     var requests = <HttpRequest>[];
-    router.serve('/foo').listen(expectAsync1((request) {
+    router.serve('/foo').listen(expectAsync((request) {
       requests.add(request);
       if (requests.length == 2){
         expect(requests, [testGetReq, testPostReq]);
@@ -66,10 +66,10 @@ main() {
     var controller = new StreamController<HttpRequest>();
     var router = new Router(controller.stream);
     var testReq = new HttpRequestMock(Uri.parse('/foo'));
-    router.serve('/foo').listen(expectAsync1((req) {
+    router.serve('/foo').listen(expectAsync((req) {
       expect(req, testReq);
     }));
-    router.serve('/bar').listen(expectAsync1((req) {}, count: 0));
+    router.serve('/bar').listen(expectAsync((req) {}, count: 0));
     controller.add(testReq);
   });
 
@@ -77,8 +77,8 @@ main() {
     var controller = new StreamController<HttpRequest>();
     var router = new Router(controller.stream);
     var testReq = new HttpRequestMock(Uri.parse('/bar'));
-    router.serve('/foo').listen(expectAsync1((req) {}, count: 0));
-    router.serve('/bar').listen(expectAsync1((req) {
+    router.serve('/foo').listen(expectAsync((req) {}, count: 0));
+    router.serve('/bar').listen(expectAsync((req) {
       expect(req, testReq);
     }));
     controller.add(testReq);
@@ -88,10 +88,10 @@ main() {
     var controller = new StreamController<HttpRequest>();
     var router = new Router(controller.stream);
     var testReq = new HttpRequestMock(Uri.parse('/bar'));
-    testReq.response._onClose = expectAsync0(() {
+    testReq.response._onClose = expectAsync(() {
       expect(testReq.response.statusCode, 404);
     });
-    router.serve('/foo').listen(expectAsync1((req) {}, count: 0));
+    router.serve('/foo').listen(expectAsync((req) {}, count: 0));
     controller.add(testReq);
   });
 
@@ -99,10 +99,10 @@ main() {
     var controller = new StreamController<HttpRequest>();
     var router = new Router(controller.stream);
     var testReq = new HttpRequestMock(Uri.parse('/bar'));
-    testReq.response._onClose = expectAsync0(() {
+    testReq.response._onClose = expectAsync(() {
       expect(testReq.response.statusCode, 200);
     });
-    router.defaultStream.listen(expectAsync1((HttpRequest req) {
+    router.defaultStream.listen(expectAsync((HttpRequest req) {
       req.response.statusCode = 200;
       req.response.close();
     }));
@@ -113,11 +113,11 @@ main() {
     var controller = new StreamController<HttpRequest>();
     var router = new Router(controller.stream);
     var testReq = new HttpRequestMock(Uri.parse('/foo'));
-    router.filter('/foo', expectAsync1((req) {
+    router.filter('/foo', expectAsync((req) {
       expect(req, testReq);
       return new Future.value(true);
     }));
-    router.serve('/foo').listen(expectAsync1((req) {
+    router.serve('/foo').listen(expectAsync((req) {
       expect(req, testReq);
     }));
     controller.add(testReq);
@@ -127,11 +127,11 @@ main() {
     var controller = new StreamController<HttpRequest>();
     var router = new Router(controller.stream);
     var testReq = new HttpRequestMock(Uri.parse('/foo'));
-    router.filter('/foo', expectAsync1((req) {
+    router.filter('/foo', expectAsync((req) {
       expect(req, testReq);
       return new Future.value(false);
     }));
-    router.serve('/foo').listen(expectAsync1((req) {}, count: 0));
+    router.serve('/foo').listen(expectAsync((req) {}, count: 0));
     controller.add(testReq);
   });
 
