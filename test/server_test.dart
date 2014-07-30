@@ -2,12 +2,12 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-
-import 'package:unittest/unittest.dart';
-import 'package:unittest/mock.dart';
-import 'package:route/server.dart';
 import 'dart:async';
 import 'dart:io';
+
+import 'package:mock/mock.dart';
+import 'package:route/server.dart';
+import 'package:unittest/unittest.dart';
 
 class HttpRequestMock extends Mock implements HttpRequest {
   Uri uri;

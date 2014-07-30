@@ -62,7 +62,7 @@ main() {
       expect(path, predicate((p) => p.endsWith('#fragment')));
     }));
     router.listen();
-    query('#a_with_fragment').click();
+    querySelector('#a_with_fragment').click();
   });
 
 }
