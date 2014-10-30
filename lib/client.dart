@@ -145,11 +145,15 @@ class Router {
   }
 
   void _go(String path, String title) {
-    title = (title == null) ? '' : title;
     if (useFragment) {
       window.location.assign(path);
-      (window.document as HtmlDocument).title = title;
+      if (title != null) {
+        (window.document as HtmlDocument).title = title;
+      }
     } else {
+      if (title == null) {
+        title = _window.document.title;
+      }
       window.history.pushState(null, title, path);
     }
   }
