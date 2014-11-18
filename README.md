@@ -60,6 +60,7 @@ Example (client.dart):
 ```dart
 library client;
 
+import 'urls.dart';
 import 'package:route/client.dart';
 
 main() {
