@@ -93,7 +93,7 @@ import 'package:route/pattern.dart';
 
 HttpServer.bind().then((server) {
   var router = new Router(server)
-      ..filter(matchesAny(allUrls), authFilter)
+      ..filter(matchAny(allUrls), authFilter)
       ..serve(homeUrl).listen(serverHome)
       ..serve(articleUrl, method: 'GET').listen(serveArticle)
       ..defaultStream.listen(serveNotFound);
